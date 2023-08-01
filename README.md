@@ -7,3 +7,25 @@ Struct es un lenguaje orientado por objetos y fuertemente tipado, cuyo principal
 
 Además, con el propósito en mente que el programador solo tenga que usar llamados a funciones, propias de cada estructura para la manipulación de los datos, es decir, cada estructura debe soportar: Ingreso de nuevos datos, modificación, consultas, eliminación de datos.
 
+# ¿Cómo usar?
+
+1. Descargue el repositorio:
+```sh
+$ git clone URLREPO
+```
+2. Cree un entorno virtual de python:
+```sh
+$ python3 -m venv .venv
+```
+3. Active el entorno virtual:
+```sh
+$ source .venv/bin/activate
+```
+4. Instale las dependencias:
+```sh
+(.venv)$ pip install -r requirements.txt
+```
+5. Ejecute el interprete de STRUCT con:
+```sh
+(.venv)$ python3 struct_interpreter.py
+```
