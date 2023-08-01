@@ -1,8 +1,8 @@
 import re
 import ply.lex as lex
 
-# List of token names. This is always required
-tokens = (
+# List of simple token names.
+simple_tokens = [
    'NUMBER',
    'PLUS',
    'MINUS',
@@ -21,13 +21,35 @@ tokens = (
    'GREATER',
    'GREATER_EQUAL',
    'COMMA',
-   'QUOTE'
-)
+   'COLON',
+   'QUOTE',
+   'COMMENT'
+]
+
+reserved = {
+   'INT': 'INT',
+   'BOOL': 'BOOL',
+   'TRUE': 'TRUE',
+   'FALSE': 'FALSE',
+   'STRING': 'STRING',
+   'DICTIONARY': 'DICTIONARY',
+   'OBJ': 'OBJ',
+   'FOR': 'FOR',
+   'IN': 'IN',
+   'IF': 'IF',
+   'ELIF': 'ELIF',
+   'ELSE': 'ELSE',
+   'PRINT': 'PRINT'
+}
+
+# List of token names. Always required.
+tokens = simple_tokens + list(reserved.values())
 
 # Regular expression rules for simple tokens
 t_PLUS    = r'\+'
 t_MINUS   = r'-'
 t_TIMES   = r'\*'
+t_COMMENT = r'//.*'
 t_DIVIDE  = r'/'
 t_LPAREN  = r'\('
 t_RPAREN  = r'\)'
@@ -42,6 +64,7 @@ t_LESS = r'<'
 t_GREATER = r'>'
 t_GREATER_EQUAL = r'>='
 t_COMMA = r','
+t_COLON = r':'
 t_QUOTE = r'"'
 
 # A regular expression rule for floats
@@ -64,7 +87,8 @@ def t_ATRIBUTE(t):
 
 # A regular expression rule for ids
 def t_ID(t):
-    r'[a-zA-Z][a-zA-Z0-9]+'   
+    r'[a-zA-Z_][a-zA-Z0-9_]+'
+    t.type = reserved.get(t.value,'ID') # Check for reserved words
     return t
 
 # Define a rule so we can track line numbers
@@ -88,8 +112,5 @@ with open('./examples/strucexample.st', 'r') as source:
         # Give the lexer some input
         lexer.input(line)
         # Tokenize
-        while True:
-            tok = lexer.token()
-            if not tok: 
-                break # No more input
+        for tok in lexer:
             print(tok)
