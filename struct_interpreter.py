@@ -81,13 +81,13 @@ def t_NUMBER(t):
 
 # A regular expression rule for atributes
 def t_ATRIBUTE(t):
-    r'\.[a-zA-Z][a-zA-Z0-9]+'
+    r'\.[a-zA-Z][a-zA-Z0-9]*'
     t.value = t.value[1:]
     return t
 
 # A regular expression rule for ids
 def t_ID(t):
-    r'[a-zA-Z_][a-zA-Z0-9_]+'
+    r'[a-zA-Z_][a-zA-Z0-9_]*'
     t.type = reserved.get(t.value,'ID') # Check for reserved words
     return t
 
