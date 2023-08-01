@@ -1,6 +1,7 @@
+import re
 import ply.lex as lex
 
-# List of token names.   This is always required
+# List of token names. This is always required
 tokens = (
    'NUMBER',
    'PLUS',
@@ -38,8 +39,8 @@ t_EQUAL = r'=='
 t_ASSINGMENT = r'='
 t_LESS_EQUAL = r'<='
 t_LESS = r'<'
-t_GREATER = r'>='
-t_GREATER_EQUAL = r'>'
+t_GREATER = r'>'
+t_GREATER_EQUAL = r'>='
 t_COMMA = r','
 t_QUOTE = r'"'
 
@@ -49,10 +50,21 @@ def t_FLOAT(t):
     t.value = float(t.value)    
     return t
 
-# A regular expression rule with some action code
+# A regular expression rule for ints
 def t_NUMBER(t):
     r'\d+'
     t.value = int(t.value)    
+    return t
+
+# A regular expression rule for atributes
+def t_ATRIBUTE(t):
+    r'\.[a-zA-Z][a-zA-Z0-9]+'
+    t.value = t.value[1:]
+    return t
+
+# A regular expression rule for ids
+def t_ID(t):
+    r'[a-zA-Z][a-zA-Z0-9]+'   
     return t
 
 # Define a rule so we can track line numbers
@@ -71,18 +83,13 @@ def t_error(t):
 # Build the lexer
 lexer = lex.lex()
 
-# Test it out
-data = '''
-3 + 4 * 10 , {10.,.20,30.40} ( ) [ ]
-  + -20 *2
-'''
-
-# Give the lexer some input
-lexer.input(data)
-
-# Tokenize
-while True:
-    tok = lexer.token()
-    if not tok: 
-        break      # No more input
-    print(tok)
+with open('./examples/strucexample.st', 'r') as source:
+    for line in source:
+        # Give the lexer some input
+        lexer.input(line)
+        # Tokenize
+        while True:
+            tok = lexer.token()
+            if not tok: 
+                break # No more input
+            print(tok)
