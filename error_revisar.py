@@ -51,31 +51,31 @@ t_COMMA = r','
 t_COLON = r':'
 t_QUOTE = r'"'
 
-# Regla para el token de número
+#Regla para el token de número
 def t_NUMBER(t):
     r'\d+'
     t.value = int(t.value)
     return t
 
-# Regla para manejar los identificadores
+#Regla para manejar los identificadores
 def t_ID(t):
     r'[a-zA-Z_]\w*'
     return t
 
-# Regla para manejar espacios en blanco (ignorados)
+#Regla para manejar espacios en blanco (ojo- son ignorados)
 def t_WHITESPACE(t):
     r'\s+'
     pass
 
-# Regla para manejar errores léxicos
+#Regla para manejar los errores léxicos
 def t_error(t):
     print(f"Error léxico: Carácter inesperado '{t.value[0]}' en la línea {t.lineno}, posición {t.lexpos + 1}")
     t.lexer.skip(1)
 
-# Construir el lexer
+#Constructor de  'lexer'
 lexer = lex.lex()
 
-# Prueba del tokenizador
+#Prueba del tokenizador
 if __name__ == "__main__":
     source_code = """
     INT x = 42
