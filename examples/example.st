@@ -1,4 +1,4 @@
-DICTIONARY inventory = {"apple": 5, "banana": 3, "orange": 2}
+DICTIONARY inventory {"apple": 5, "banana": 3, "orange": 2}
 
 
 FOR i in inventory
@@ -36,13 +36,13 @@ for i IN inventory
     PRINT(i.key, i.value)
 }
 
-#Nuevas entradas
+//Nuevas entradas
 
 INT new_apple {5}
 int new_banana {3}
 INT new_orange {2}
 
-#Actualizacion del inventario
+//Actualizacion del inventario
 
 inventory[apple] = new_apple
 inventory["banana"] = new_banana

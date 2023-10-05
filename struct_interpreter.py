@@ -81,7 +81,7 @@ def t_NUMBER(t):
 
 # A regular expression rule for atributes
 def t_ATRIBUTE(t):
-    r'\.[a-zA-Z][a-zA-Z0-9]*'
+    r'\.[a-zA-Z][a-zA-Z0-9]+'
     t.value = t.value[1:]
     return t
 
@@ -107,10 +107,11 @@ def t_error(t):
 # Build the lexer
 lexer = lex.lex()
 
-with open('./examples/strucexample.st', 'r') as source:
+with open('./examples/example.st', 'r') as source:
+    f = False
     for line in source:
         # Give the lexer some input
         lexer.input(line)
         # Tokenize
         for tok in lexer:
-            print(tok)
+            print(f'Token |{tok.value}| type: {tok.type}, line: {tok.lineno}, col: {tok.lexpos}')
