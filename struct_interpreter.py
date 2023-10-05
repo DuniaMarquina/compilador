@@ -88,7 +88,11 @@ def t_ATRIBUTE(t):
 # A regular expression rule for ids
 def t_ID(t):
     r'[a-zA-Z_][a-zA-Z0-9_]*'
-    t.type = reserved.get(t.value,'ID') # Check for reserved words
+    if t.value.lower() in reserved:
+        print(f"Error: Reserved word '{t.value}' must be in uppercase at line {t.lineno}, position {t.lexpos}")
+        t.lexer.skip(len(t.value))
+    else:
+        t.type = reserved.get(t.value,'ID') # Check for reserved words
     return t
 
 # Define a rule so we can track line numbers
@@ -101,7 +105,7 @@ t_ignore  = ' \t'
 
 # Error handling rule
 def t_error(t):
-    print("Illegal character '%s'" % t.value[0])
+    print(f"Error: Ilegal character '{t.value[0]}' at line {t.lineno}, position {t.lexpos}")
     t.lexer.skip(1)
 
 # Build the lexer
