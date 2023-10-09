@@ -1,5 +1,13 @@
 import re
 import ply.lex as lex
+"""
+    Definition zone of Tokenizer
+        Firts: Define an list with the simple tokens.
+        Second: Define an list with the reserved words.
+        Third: Define regular expresions to match by simple token or reserved word. 
+        Four: Define regular expresions to complex tokens.
+"""
+
 
 # List of simple token names.
 simple_tokens = [
@@ -98,7 +106,7 @@ def t_ID(t):
 # Define a rule so we can track line numbers
 def t_newline(t):
     r'\n+'
-    t.lexer.lineno += len(t.value)
+    t.lexer.lineno += len(t.value) # skip to next line
 
 # A string containing ignored characters (spaces and tabs)
 t_ignore  = ' \t'
@@ -106,12 +114,12 @@ t_ignore  = ' \t'
 # Error handling rule
 def t_error(t):
     print(f"Error: Ilegal character '{t.value[0]}' at line {t.lineno}, position {t.lexpos}")
-    t.lexer.skip(1)
+    t.lexer.skip(len(t.value))
 
 # Build the lexer
 lexer = lex.lex()
 
-with open('./examples/example.st', 'r') as source:
+with open('./examples/error_example.st', 'r') as source:
     f = False
     for line in source:
         # Give the lexer some input
