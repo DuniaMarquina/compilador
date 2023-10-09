@@ -1,4 +1,5 @@
 import re
+import sys
 import ply.lex as lex
 """
     Definition zone of Tokenizer
@@ -8,6 +9,7 @@ import ply.lex as lex
         Four: Define regular expresions to complex tokens.
 """
 
+entry_args = sys.argv
 
 # List of simple token names.
 simple_tokens = [
@@ -119,7 +121,7 @@ def t_error(t):
 # Build the lexer
 lexer = lex.lex()
 
-with open('./examples/error_example.st', 'r') as source:
+with open(entry_args[0], 'r') as source:
     f = False
     for line in source:
         # Give the lexer some input

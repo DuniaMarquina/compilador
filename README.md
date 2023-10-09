@@ -25,7 +25,7 @@ $ source .venv/bin/activate
 ```sh
 (.venv)$ pip install -r requirements.txt
 ```
-5. Ejecute el interprete de STRUCT con:
+5. Para ejecutar el intérprete de STRUCT necesita pasarle la ubicación y nombre del archivo que contiene el código fuente de su programa, como se ve a continuación:
 ```sh
-(.venv)$ python3 struct_interpreter.py
+(.venv)$ python3 struct_interpreter.py path_to_code/name_of_file.st
 ```
