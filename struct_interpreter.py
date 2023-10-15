@@ -89,6 +89,12 @@ def t_NUMBER(t):
     t.value = int(t.value)    
     return t
 
+def t_L_STRING(t):
+    r'"([^\\"]+|\\"|\\\\)*"'
+    t.value = t.value[1:-1]
+    print(f"Find a string: {t.value}")
+    return t
+
 # A regular expression rule for atributes
 def t_ATRIBUTE(t):
     r'\.[a-zA-Z][a-zA-Z0-9]+'
@@ -121,7 +127,7 @@ def t_error(t):
 # Build the lexer
 lexer = lex.lex()
 
-with open(entry_args[0], 'r') as source:
+with open(entry_args[1], 'r') as source:
     f = False
     for line in source:
         # Give the lexer some input
