@@ -15,5 +15,5 @@ def recursive_dump(root, dump_file):
 
 tree = ast.parse(source_code, filename='code-example.py')
 
-with open('dump_python.txt', 'w') as dump_file:
+with open('dumps/dump_example_python.txt', 'w') as dump_file:
     recursive_dump(tree, dump_file)
