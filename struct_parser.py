@@ -2,8 +2,6 @@ import sys
 import ply.yacc as yacc
 import ply.lex as lex
 
-import ast
-
 """
     Definition zone of Tokenizer
         Firts: Define an list with the simple tokens.
@@ -33,8 +31,8 @@ simple_tokens = [
 #   'LESS',
  #  'GREATER',
   # 'GREATER_EQUAL',
-   #'COMMA',
-   #'COLON',
+   'COMMA',
+   'COLON',
    #'QUOTE',
 #   'COMMENT',
     'ID',
@@ -48,7 +46,7 @@ reserved = {
    'TRUE': 'TRUE',
    'FALSE': 'FALSE',
    'STRING': 'STRING',
-   #'DICTIONARY': 'DICTIONARY'
+   'DICTIONARY': 'DICTIONARY'
 #   'FOR': 'FOR',
 #   'IN': 'IN',
 #   'IF': 'IF',
@@ -78,8 +76,8 @@ t_LESS_EQUAL = r'<='
 t_LESS = r'<'
 t_GREATER = r'>'
 t_GREATER_EQUAL = r'>='"""
-#t_COMMA = r','
-#t_COLON = r':'
+t_COMMA = r','
+t_COLON = r':'
 #t_QUOTE = r'"'
 
 # A regular expression rule for floats
@@ -142,25 +140,49 @@ def p_code(p):
         p[0] = p[1]
 
 def p_expr(p):
-    """expr : assig NEW_LINE
-            | expr NEW_LINE
+    """expr : expr NEW_LINE
             | assig"""
-    if len(p) < 2:
-        p[0] = p[1]
+    
+    if len(p) == 2:
+        p[0] = [p[1]]
     else:
+        p[0] = []
         if isinstance(p[1], list):
-            p[0] = p[1]
-        else:    
-            p[0] = [p[1]]
+            p[0].extend(p[1])
+        if isinstance(p[2], list):
+            p[0].extend(p[2])
+
+def p_init_list(p):
+    """init_list : init_list dict_value
+                 | init_list COMMA
+                 | dict_value"""
+    if len(p) == 2:
+        p[0] = [p[1]]
+    else:
+        p[0] = []
+        if isinstance(p[1], tuple) or isinstance(p[1], list):
+            p[0].extend(p[1])
+        if isinstance(p[2], tuple):
+            p[0].extend(p[2])
+    
+def p_dict_value(p):
+    """dict_value : key COLON r_value"""
+    p[0] = ('d_value', p[1], p[3])
+
+def p_key(p):
+    """key : R_STRING"""
+    p[0] = ('key', p[1])
 
 def p_assig(p):
-    """assig : type ID LCURLY_BRACE r_value RCURLY_BRACE"""
+    """assig : type ID LCURLY_BRACE r_value RCURLY_BRACE
+             | type ID LCURLY_BRACE init_list RCURLY_BRACE"""
     p[0] = ('asig', p[1], p[2], p[4])
 
 def p_data_type(p):
     """type : STRING
             | INT
-            | BOOL"""
+            | BOOL
+            | DICTIONARY"""
     p[0] = ('type', p[1])
 
 def p_r_value(p):
@@ -198,6 +220,6 @@ def recursive_dump(root, dump_file):
         #dump_file.write(ast.dump(node))
         #dump_file.write("\n\n")
 
-tree = parser.parse(source_code, debug=True, lexer=lexer)
+tree = parser.parse(source_code, lexer=lexer, debug=True)
 with open('dumps/dump_example_struct.txt', 'w') as dump_file:
     recursive_dump(tree, dump_file)

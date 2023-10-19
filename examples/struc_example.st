@@ -1,5 +1,3 @@
 STRING a {"Hola mundo!"}
 
-INT b {344}
-
-BOOL c {FALSE}
+DICTIONARY inventory {"apple": 5, "banana": 3, "orange": 2}
