@@ -155,23 +155,35 @@ def p_expr(p):
 def p_init_list(p):
     """init_list : init_list dict_value
                  | init_list COMMA
+                 | init_list NEW_LINE
                  | dict_value"""
     if len(p) == 2:
         p[0] = [p[1]]
+    elif p[1] and isinstance(p[2],tuple):
+        p[1].append(p[2])
+        p[0] = p[1]
+        print("################ P[1]",p[1])
     else:
-        p[0] = []
-        if isinstance(p[1], tuple) or isinstance(p[1], list):
-            p[0].extend(p[1])
-        if isinstance(p[2], tuple):
-            p[0].extend(p[2])
+        p[0] = p[1]
+    print("################ P[0]",p[0])
     
 def p_dict_value(p):
-    """dict_value : key COLON r_value"""
-    p[0] = ('d_value', p[1], p[3])
+    """dict_value : NEW_LINE key COLON suite_value
+                  | key COLON suite_value"""
+    if len(p) == 5:
+        p[0] = ('d_value', p[2], p[4])
+    else:
+        p[0] = ('d_value', p[1], p[3])
+    print("################ D_VALUE",p[0])
 
 def p_key(p):
     """key : R_STRING"""
     p[0] = ('key', p[1])
+
+def p_suite_value(p):
+    """suite_value : r_value
+                   | cplx_value"""
+    p[0] = p[1]
 
 def p_assig(p):
     """assig : type ID LCURLY_BRACE r_value RCURLY_BRACE
@@ -191,6 +203,10 @@ def p_r_value(p):
                | TRUE
                | R_STRING"""
     p[0] = ('r_value',p[1])
+
+def p_cplx_value(p):
+    """cplx_value : LCURLY_BRACE init_list RCURLY_BRACE"""
+    p[0] = p[2]
 
 def p_error(p):
     SyntaxError(p)
