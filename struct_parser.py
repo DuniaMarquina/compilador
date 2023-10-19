@@ -21,8 +21,8 @@ simple_tokens = [
  #  'MINUS',
  #  'TIMES',
  #  'DIVIDE',
-   'LPAREN',
-   'RPAREN',
+  # 'LPAREN',
+   #'RPAREN',
 #   'RBRACKET',
 #   'LBRACKET',
    'LCURLY_BRACE',
@@ -66,8 +66,8 @@ tokens = simple_tokens + list(reserved.values())
 #t_TIMES   = r'\*'
 #t_COMMENT = r'//.*'
 #t_DIVIDE  = r'/'
-t_LPAREN  = r'\('
-t_RPAREN  = r'\)'
+#t_LPAREN  = r'\('
+#t_RPAREN  = r'\)'
 #t_RBRACKET = r'\['
 #t_LBRACKET = r'\]'
 t_LCURLY_BRACE = r'\{'
@@ -132,7 +132,6 @@ symbol_table = dict()
 def p_code(p):
     """code : code expr
             | expr """
-    print("CODEEEEEEEEEEEEEE", len(p))
     if len(p) > 2:
         p[0] = []
         if isinstance(p[1], list):
@@ -181,8 +180,9 @@ lexer = lex.lex()
 parser = yacc.yacc()
 
 # Reading source code
+source_file = entry_args[1] if len(entry_args) > 1 else 'examples/struc_example.st' 
 source_code = '' 
-with open('examples/struc_example.st', 'r') as source_file:
+with open(source_file, 'r') as source_file:
     for line in source_file.readlines():
         source_code += line
 
@@ -199,6 +199,5 @@ def recursive_dump(root, dump_file):
         #dump_file.write("\n\n")
 
 tree = parser.parse(source_code, debug=True, lexer=lexer)
-
 with open('dumps/dump_example_struct.txt', 'w') as dump_file:
     recursive_dump(tree, dump_file)
