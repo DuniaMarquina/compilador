@@ -131,35 +131,48 @@ symbol_table = dict()
 
 def p_code(p):
     """code : code expr
-            | expr"""    
-    if len(p) < 3:
-        print(f'######### EXPR 1: {p[1]} #########')
-        p[0] = [p[1]]
-    else:
-        print(f'######### EXPR 2: {p[1]} {p[2]} #########')
-        p[0] = [p[1], p[2]]
+            | expr """
+    print("CODEEEEEEEEEEEEEE", len(p))
+    if len(p) > 2:
+        p[0] = []
+        if isinstance(p[1], list):
+            p[0].extend(p[1])
+        if isinstance(p[2], list):
+            p[0].extend(p[2])
+    elif isinstance(p[1], list):
+        p[0] = p[1]
 
 def p_expr(p):
     """expr : assig NEW_LINE
-            | expr NEW_LINE"""
-    p[0] = p[1]
+            | expr NEW_LINE
+            | assig"""
+    if len(p) < 2:
+        p[0] = p[1]
+    else:
+        if isinstance(p[1], list):
+            p[0] = p[1]
+        else:    
+            p[0] = [p[1]]
 
 def p_assig(p):
     """assig : type ID LCURLY_BRACE r_value RCURLY_BRACE"""
-    p[0] = 'asig'
+    p[0] = ('asig', p[1], p[2], p[4])
 
 def p_data_type(p):
     """type : STRING
             | INT
             | BOOL"""
-    #p[0] = p[1]
+    p[0] = ('type', p[1])
 
 def p_r_value(p):
     """r_value : NUMBER
                | FALSE
                | TRUE
                | R_STRING"""
-    #p[0] = p[1]
+    p[0] = ('r_value',p[1])
+
+def p_error(p):
+    SyntaxError(p)
 
 # Build the lexer
 lexer = lex.lex()
@@ -167,12 +180,25 @@ lexer = lex.lex()
 # Build the parser
 parser = yacc.yacc()
 
-code = r"""
-STRING hi {"Hola mundo!"}
+# Reading source code
+source_code = '' 
+with open('examples/struc_example.st', 'r') as source_file:
+    for line in source_file.readlines():
+        source_code += line
 
-INT age {26}
+source_file.close()
 
-BOOL male {FALSE}
-"""
-result = parser.parse(code, debug=True, lexer=lexer)
-print(result)
+def recursive_dump(root, dump_file):
+    for exp in root:
+        dump_file.write(str(exp))
+        dump_file.write("\n\n")
+
+    # Use with ast python module
+    #for node in ast.iter_child_nodes(root):
+        #dump_file.write(ast.dump(node))
+        #dump_file.write("\n\n")
+
+tree = parser.parse(source_code, debug=True, lexer=lexer)
+
+with open('dumps/dump_example_struct.txt', 'w') as dump_file:
+    recursive_dump(tree, dump_file)

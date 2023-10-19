@@ -1,7 +1,7 @@
 import ast
 
 source_code = '' 
-with open('code-example.py', 'r') as source_file:
+with open('examples/python-example.py', 'r') as source_file:
     for line in source_file.readlines():
         source_code += line
 
