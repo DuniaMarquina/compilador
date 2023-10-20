@@ -42,5 +42,8 @@ FOR item IN complex_dict
     // Ha!, lets due it
     FOR dataCl IN client {
         BOOL stillWaiting {FALSE} // Let's break this parser
+        PRINT(dataCl, "")
     }
 }
+
+PRINT(a, "Hola mundo!")

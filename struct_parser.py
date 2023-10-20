@@ -30,8 +30,8 @@ simple_tokens = [
  #  'MINUS',
  #  'TIMES',
  #  'DIVIDE',
-  # 'LPAREN',
-   #'RPAREN',
+   'LPAREN',
+   'RPAREN',
 #   'RBRACKET',
 #   'LBRACKET',
    'LCURLY_BRACE',
@@ -63,7 +63,7 @@ reserved = {
 #   'IF': 'IF',
 #   'ELIF': 'ELIF',
 #   'ELSE': 'ELSE',
-#   'PRINT': 'PRINT'
+   'PRINT': 'PRINT'
 }
 
 # List of token names. Always required.
@@ -75,8 +75,8 @@ tokens = simple_tokens + list(reserved.values())
 #t_TIMES   = r'\*'
 t_COMMENT = r'//.*'
 #t_DIVIDE  = r'/'
-#t_LPAREN  = r'\('
-#t_RPAREN  = r'\)'
+t_LPAREN  = r'\('
+t_RPAREN  = r'\)'
 #t_RBRACKET = r'\['
 #t_LBRACKET = r'\]'
 t_LCURLY_BRACE = r'\{'
@@ -154,14 +154,18 @@ def p_expr(p):
     """expr : assig comments
             | assig
             | for comments
-            | for"""
+            | for
+            | print comments
+            | print"""
     p[0] = [p[1]]
 
 def p_init_list(p):
     """init_list : init_list dict_value
+                 | init_list arg
                  | init_list COMMA comments
                  | init_list COMMA
-                 | dict_value"""
+                 | dict_value
+                 | arg"""
     if len(p) == 2:
         p[0] = [p[1]]
     elif p[1] and isinstance(p[2],tuple):
@@ -190,17 +194,30 @@ def p_suite_value(p):
         p[0] = p[1]
 
 def p_assig(p):
-    """assig : type ID LCURLY_BRACE r_value RCURLY_BRACE
-             | type ID LCURLY_BRACE init_list RCURLY_BRACE
-             | type ID LCURLY_BRACE comments init_list RCURLY_BRACE"""
+    """assig : type id LCURLY_BRACE r_value RCURLY_BRACE
+             | type id LCURLY_BRACE init_list RCURLY_BRACE
+             | type id LCURLY_BRACE comments init_list RCURLY_BRACE"""
     if len(p) == 6:
         p[0] = ('asig', p[1], p[2], p[4])
     else:
         p[0] = ('asig', p[1], p[2], p[5])
 
 def p_for(p):
-    '''for  : FOR ID IN ID LCURLY_BRACE code RCURLY_BRACE'''
+    """for  : FOR id IN id LCURLY_BRACE code RCURLY_BRACE"""
     p[0] = ('for', p[2], p[4], p[6])
+
+def p_print(p):
+    """print : PRINT LPAREN init_list RPAREN"""
+    p[0] = ('print:', p[3])
+
+def p_arg(p):
+    """arg : r_value
+           | id"""
+    p[0] = ('f_arg', p[1])
+
+def p_id(p):
+    """id : ID"""
+    p[0] = ('id', p[1])
 
 def p_data_type(p):
     """type : STRING
