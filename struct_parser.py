@@ -151,13 +151,13 @@ def p_code(p):
         p[0] = p[1]
 
 def p_expr(p):
-    """expr : assig COMMENT
+    """expr : assig comments
             | assig"""
     p[0] = [p[1]]
 
 def p_init_list(p):
     """init_list : init_list dict_value
-                 | init_list COMMA COMMENT
+                 | init_list COMMA comments
                  | init_list COMMA
                  | dict_value"""
     if len(p) == 2:
@@ -190,7 +190,7 @@ def p_suite_value(p):
 def p_assig(p):
     """assig : type ID LCURLY_BRACE r_value RCURLY_BRACE
              | type ID LCURLY_BRACE init_list RCURLY_BRACE
-             | type ID LCURLY_BRACE COMMENT init_list RCURLY_BRACE"""
+             | type ID LCURLY_BRACE comments init_list RCURLY_BRACE"""
     if len(p) == 6:
         p[0] = ('asig', p[1], p[2], p[4])
     else:
@@ -208,17 +208,21 @@ def p_r_value(p):
                | FALSE
                | TRUE
                | R_STRING
-               | NUMBER COMMENT
-               | FALSE COMMENT
-               | TRUE COMMENT
-               | R_STRING COMMENT"""
+               | NUMBER comments
+               | FALSE comments
+               | TRUE comments
+               | R_STRING comments"""
     p[0] = ('r_value',p[1])
 
 def p_cplx_value(p):
     """cplx_value : init_list RCURLY_BRACE
-                  | init_list RCURLY_BRACE COMMENT
+                  | init_list RCURLY_BRACE comments
                   | init_list"""
     p[0] = p[1]
+
+def p_commets(p):
+    """comments : comments COMMENT
+                | COMMENT"""
 
 def p_error(p):
     SyntaxError(p)

@@ -10,7 +10,8 @@ DICTIONARY complex_dict { // Nested DICTIONARY
             "seed": TRUE
             },
         "banana": {
-            "colour": "yellow", // More comments 
+            "colour": "yellow", // More comments
+            // HARD TESTING 
             "seed": TRUE // And more comments
             } // Another comment
         },
@@ -23,5 +24,8 @@ DICTIONARY complex_dict { // Nested DICTIONARY
             "colour": "red",
             "seed": TRUE
             }
-        },
+        }, // More test comments
     }
+
+// Comment just comment
+// Let's try again  
