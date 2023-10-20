@@ -162,11 +162,9 @@ def p_init_list(p):
     elif p[1] and isinstance(p[2],tuple):
         p[1].append(p[2])
         p[0] = p[1]
-        print("################ P[1]",p[1])
     else:
         p[0] = p[1]
-    print("################ P[0]",p[0])
-    
+
 def p_dict_value(p):
     """dict_value : NEW_LINE key COLON suite_value
                   | key COLON suite_value"""
@@ -174,7 +172,6 @@ def p_dict_value(p):
         p[0] = ('d_value', p[2], p[4])
     else:
         p[0] = ('d_value', p[1], p[3])
-    print("################ D_VALUE",p[0])
 
 def p_key(p):
     """key : R_STRING"""
@@ -182,8 +179,11 @@ def p_key(p):
 
 def p_suite_value(p):
     """suite_value : r_value
-                   | cplx_value"""
-    p[0] = p[1]
+                   | LCURLY_BRACE cplx_value"""
+    if len(p) == 3:
+        p[0] = p[2]
+    else:
+        p[0] = p[1]
 
 def p_assig(p):
     """assig : type ID LCURLY_BRACE r_value RCURLY_BRACE
@@ -205,8 +205,9 @@ def p_r_value(p):
     p[0] = ('r_value',p[1])
 
 def p_cplx_value(p):
-    """cplx_value : LCURLY_BRACE init_list RCURLY_BRACE"""
-    p[0] = p[2]
+    """cplx_value : init_list RCURLY_BRACE
+                  | init_list"""
+    p[0] = p[1]
 
 def p_error(p):
     SyntaxError(p)
