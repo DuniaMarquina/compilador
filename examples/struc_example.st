@@ -29,3 +29,18 @@ DICTIONARY complex_dict { // Nested DICTIONARY
 
 // Comment just comment
 // Let's try again  
+
+FOR item IN complex_dict
+{
+    DICTIONARY client {
+        "name": "Leclerc",
+        "lastName": "Perez",
+        "id": 55555555
+    }
+
+    // Some comments for here
+    // Ha!, lets due it
+    FOR dataCl IN client {
+        BOOL stillWaiting {FALSE} // Let's break this parser
+    }
+}

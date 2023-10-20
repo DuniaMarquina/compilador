@@ -57,9 +57,9 @@ reserved = {
    'TRUE': 'TRUE',
    'FALSE': 'FALSE',
    'STRING': 'STRING',
-   'DICTIONARY': 'DICTIONARY'
-#   'FOR': 'FOR',
-#   'IN': 'IN',
+   'DICTIONARY': 'DICTIONARY',
+   'FOR': 'FOR',
+   'IN': 'IN',
 #   'IF': 'IF',
 #   'ELIF': 'ELIF',
 #   'ELSE': 'ELSE',
@@ -152,7 +152,9 @@ def p_code(p):
 
 def p_expr(p):
     """expr : assig comments
-            | assig"""
+            | assig
+            | for comments
+            | for"""
     p[0] = [p[1]]
 
 def p_init_list(p):
@@ -195,6 +197,10 @@ def p_assig(p):
         p[0] = ('asig', p[1], p[2], p[4])
     else:
         p[0] = ('asig', p[1], p[2], p[5])
+
+def p_for(p):
+    '''for  : FOR ID IN ID LCURLY_BRACE code RCURLY_BRACE'''
+    p[0] = ('for', p[2], p[4], p[6])
 
 def p_data_type(p):
     """type : STRING
