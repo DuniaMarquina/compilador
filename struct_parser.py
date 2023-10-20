@@ -1,6 +1,17 @@
-import sys
+import sys, logging
 import ply.yacc as yacc
 import ply.lex as lex
+
+"""
+    Config logger to yacc.yacc().parse
+"""
+
+logging.basicConfig(
+    level=logging.DEBUG, # Flag
+    filename='dumps/parser_debug.txt', # File to store debug messages
+    filemode="w", # Mode to open debug file
+    format="%(message)s" # Format of message report
+)
 
 """
     Definition zone of Tokenizer
@@ -214,15 +225,14 @@ def p_error(p):
 
 # Build the lexer
 lexer = lex.lex()
-
 # Build the parser
 parser = yacc.yacc()
 
 # Reading source code
 source_file = entry_args[1] if len(entry_args) > 1 else 'examples/struc_example.st' 
-source_code = '' 
+source_code = '' # string to store all source file
 with open(source_file, 'r') as source_file:
-    for line in source_file.readlines():
+    for line in source_file.readlines(): # Reading all source file
         source_code += line
 
 source_file.close()
@@ -237,6 +247,6 @@ def recursive_dump(root, dump_file):
         #dump_file.write(ast.dump(node))
         #dump_file.write("\n\n")
 
-tree = parser.parse(source_code, lexer=lexer, debug=True)
+tree = parser.parse(source_code, lexer=lexer, debug=logging.getLogger())
 with open('dumps/dump_example_struct.txt', 'w') as dump_file:
     recursive_dump(tree, dump_file)
