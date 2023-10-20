@@ -45,10 +45,10 @@ simple_tokens = [
    'COMMA',
    'COLON',
    #'QUOTE',
-#   'COMMENT',
+   'COMMENT',
     'ID',
     'R_STRING',
-    'NEW_LINE'
+    #'NEW_LINE'
 ]
 
 reserved = {
@@ -73,7 +73,7 @@ tokens = simple_tokens + list(reserved.values())
 #t_PLUS    = r'\+'
 #t_MINUS   = r'-'
 #t_TIMES   = r'\*'
-#t_COMMENT = r'//.*'
+t_COMMENT = r'//.*'
 #t_DIVIDE  = r'/'
 #t_LPAREN  = r'\('
 #t_RPAREN  = r'\)'
@@ -119,13 +119,13 @@ def t_ID(t):
     return t
 
 # Define a rule so we can track line numbers
-def t_NEW_LINE(t):
-    r'\n'
-    t.lexer.lineno += len(t.value) # skip to next line
-    return t
+# def t_NEW_LINE(t):
+#     r'\n'
+#     t.lexer.lineno += len(t.value) # skip to next line
+#     return t
 
 # A string containing ignored characters (spaces and tabs)
-t_ignore  = ' \t'
+t_ignore  = ' \t\n'
 
 # Error handling rule
 def t_error(t):
@@ -151,22 +151,14 @@ def p_code(p):
         p[0] = p[1]
 
 def p_expr(p):
-    """expr : expr NEW_LINE
+    """expr : assig COMMENT
             | assig"""
-    
-    if len(p) == 2:
-        p[0] = [p[1]]
-    else:
-        p[0] = []
-        if isinstance(p[1], list):
-            p[0].extend(p[1])
-        if isinstance(p[2], list):
-            p[0].extend(p[2])
+    p[0] = [p[1]]
 
 def p_init_list(p):
     """init_list : init_list dict_value
+                 | init_list COMMA COMMENT
                  | init_list COMMA
-                 | init_list NEW_LINE
                  | dict_value"""
     if len(p) == 2:
         p[0] = [p[1]]
@@ -177,8 +169,7 @@ def p_init_list(p):
         p[0] = p[1]
 
 def p_dict_value(p):
-    """dict_value : NEW_LINE key COLON suite_value
-                  | key COLON suite_value"""
+    """dict_value : key COLON suite_value"""
     if len(p) == 5:
         p[0] = ('d_value', p[2], p[4])
     else:
@@ -198,8 +189,12 @@ def p_suite_value(p):
 
 def p_assig(p):
     """assig : type ID LCURLY_BRACE r_value RCURLY_BRACE
-             | type ID LCURLY_BRACE init_list RCURLY_BRACE"""
-    p[0] = ('asig', p[1], p[2], p[4])
+             | type ID LCURLY_BRACE init_list RCURLY_BRACE
+             | type ID LCURLY_BRACE COMMENT init_list RCURLY_BRACE"""
+    if len(p) == 6:
+        p[0] = ('asig', p[1], p[2], p[4])
+    else:
+        p[0] = ('asig', p[1], p[2], p[5])
 
 def p_data_type(p):
     """type : STRING
@@ -212,11 +207,16 @@ def p_r_value(p):
     """r_value : NUMBER
                | FALSE
                | TRUE
-               | R_STRING"""
+               | R_STRING
+               | NUMBER COMMENT
+               | FALSE COMMENT
+               | TRUE COMMENT
+               | R_STRING COMMENT"""
     p[0] = ('r_value',p[1])
 
 def p_cplx_value(p):
     """cplx_value : init_list RCURLY_BRACE
+                  | init_list RCURLY_BRACE COMMENT
                   | init_list"""
     p[0] = p[1]
 
