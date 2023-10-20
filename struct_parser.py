@@ -157,12 +157,12 @@ def p_init_list(p):
                  | init_list COMMA
                  | init_list NEW_LINE
                  | dict_value"""
-    if len(p) == 2:
+    if len(p) == 2: #caso base cuando init_list esta iniciandose 
         p[0] = [p[1]]
     elif p[1] and isinstance(p[2],tuple):
-        p[1].append(p[2])
-        p[0] = p[1]
-    else:
+        p[1].append(p[2])  #se anaden lineas que se van procesando (sentancia clave-valor)
+        p[0] = p[1] #p[0] retorno em .yacc
+    else: # corresponde a los casos intermedios 
         p[0] = p[1]
 
 def p_dict_value(p):
