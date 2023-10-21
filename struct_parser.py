@@ -158,8 +158,10 @@ def p_expr(p):
             | print comments
             | print
             | modification comments
-            | modification"""
-    p[0] = [p[1]]
+            | modification
+            | comments"""
+    if p[1]:
+        p[0] = [p[1]]
 
 def p_init_list(p):
     """init_list : init_list dict_value
@@ -215,21 +217,28 @@ def p_print(p):
     p[0] = ('print:', p[3])
 
 def p_high_level(p):
-    """h_level : h_level COMMA l_level 
+    """h_level : h_level COMMA comments l_level
+               | h_level COMMA l_level
                | l_level """
     if len(p) == 2:
         p[0] = [p[1]]
-    else:
+    elif len(p) == 4:
         p[1].append(p[3])
+        p[0] = p[1]
+    else:
+        p[1].append(p[4])
         p[0] = p[1]
                            
 def p_lower_level(p):
     """l_level : value
-               | LCURLY_BRACE h_level RCURLY_BRACE"""
+               | LCURLY_BRACE h_level RCURLY_BRACE
+               | LCURLY_BRACE comments h_level RCURLY_BRACE"""
     if len(p) == 2:
         p[0] = p[1]
-    else:
+    elif len(p) == 4:
         p[0] = ('level',p[2])
+    else:
+        p[0] = ('level',p[3])
 
 def p_value(p):
     """value : r_value
