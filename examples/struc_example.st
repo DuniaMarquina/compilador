@@ -52,7 +52,13 @@ a = "Hola universo!" // Break?
 inventory["apple"] = 80 // Doble break?
 complex_dict["apple"]["colour"] = "Green"
 
-INT array[3] = {1,2,3}
+INT x = 10
 
-array[2] = 4
+INT array[4] {1,2,3,4}
 
+INT arr2[2][2][2] {
+    { {3, 3}, {x, 4} },
+    { {5, 5}, {6, 6} }
+}
+
+arr[2][3][1] = 4
