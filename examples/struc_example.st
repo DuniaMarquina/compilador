@@ -33,11 +33,11 @@ DICTIONARY complex_dict { // Nested DICTIONARY
 FOR item IN complex_dict
 {
     DICTIONARY client {
-        "name": "Leclerc",
+        "name": "Charles",
         "lastName": "Perez",
         "id": 55555555
     }
-
+    client["lastName"] = "Leclerc" 
     // Some comments for here
     // Ha!, lets due it
     FOR dataCl IN client {
@@ -47,3 +47,7 @@ FOR item IN complex_dict
 }
 
 PRINT(a, "Hola mundo!")
+
+a = "Hola universo!" // Break?
+inventory["apple"] = 80 // Doble break?
+complex_dict["apple"]["colour"] = "Green"

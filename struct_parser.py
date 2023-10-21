@@ -32,12 +32,12 @@ simple_tokens = [
  #  'DIVIDE',
    'LPAREN',
    'RPAREN',
-#   'RBRACKET',
-#   'LBRACKET',
+   'RBRACKET',
+   'LBRACKET',
    'LCURLY_BRACE',
    'RCURLY_BRACE',
    #'EQUAL',
-#   'ASSINGMENT',
+   'ASSINGMENT',
 #   'LESS_EQUAL',
 #   'LESS',
  #  'GREATER',
@@ -45,7 +45,7 @@ simple_tokens = [
    'COMMA',
    'COLON',
    #'QUOTE',
-   'COMMENT',
+    'COMMENT',
     'ID',
     'R_STRING',
     #'NEW_LINE'
@@ -77,16 +77,16 @@ t_COMMENT = r'//.*'
 #t_DIVIDE  = r'/'
 t_LPAREN  = r'\('
 t_RPAREN  = r'\)'
-#t_RBRACKET = r'\['
-#t_LBRACKET = r'\]'
+t_LBRACKET = r'\['
+t_RBRACKET = r'\]'
 t_LCURLY_BRACE = r'\{'
 t_RCURLY_BRACE = r'\}'
-"""t_EQUAL = r'=='
+#t_EQUAL = r'=='
 t_ASSINGMENT = r'='
-t_LESS_EQUAL = r'<='
-t_LESS = r'<'
-t_GREATER = r'>'
-t_GREATER_EQUAL = r'>='"""
+#t_LESS_EQUAL = r'<='
+#t_LESS = r'<'
+#t_GREATER = r'>'
+#t_GREATER_EQUAL = r'>='
 t_COMMA = r','
 t_COLON = r':'
 #t_QUOTE = r'"'
@@ -156,7 +156,9 @@ def p_expr(p):
             | for comments
             | for
             | print comments
-            | print"""
+            | print
+            | modification comments
+            | modification"""
     p[0] = [p[1]]
 
 def p_init_list(p):
@@ -180,10 +182,6 @@ def p_dict_value(p):
         p[0] = ('d_value', p[2], p[4])
     else:
         p[0] = ('d_value', p[1], p[3])
-
-def p_key(p):
-    """key : R_STRING"""
-    p[0] = ('key', p[1])
 
 def p_suite_value(p):
     """suite_value : r_value
@@ -209,6 +207,27 @@ def p_for(p):
 def p_print(p):
     """print : PRINT LPAREN init_list RPAREN"""
     p[0] = ('print:', p[3])
+
+def p_modification(p):
+    """modification : id ASSINGMENT r_value
+                    | id index ASSINGMENT r_value"""
+    if len(p) == 4:
+        p[0] = ('modification', p[1], p[3])
+    else:
+        p[0] = ('modification', p[1], p[2], p[4])
+
+def p_index(p):
+    """index : LBRACKET key RBRACKET
+             | index LBRACKET key RBRACKET"""
+    if len(p) == 4:
+        p[0] = [p[2]]
+    else:
+        p[1].append(p[3])
+        p[0] = p[1]
+
+def p_key(p):
+    """key : R_STRING"""
+    p[0] = ('key', p[1])
 
 def p_arg(p):
     """arg : r_value
