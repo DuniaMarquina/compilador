@@ -1,60 +1,58 @@
 // Basic types
-INT numElements {2}
-BOOL nedded {TRUE}
+STRING a {"Hola mundo!"}
 
 // Data colections
-OBJ wishList[numElements] {{},{}}
-
-DICTIONARY inventory
-{
-    "Lollipop":
-        {
-            INT quantity {16},
-            STRING flavor {"Lemon"},
-            STRING type {"flat"}
+DICTIONARY inventory {"apple": 5, "banana": 3, "orange": 2}
+DICTIONARY complex_dict { // Nested DICTIONARY
+    "fruits": {
+        "apple": {
+            "colour": "red",
+            "seed": TRUE
+            },
+        "banana": {
+            "colour": "yellow", // More comments
+            // HARD TESTING 
+            "seed": TRUE // And more comments
+            } // Another comment
         },
-    "Cookie":
-        {
-            INT quantity {5},
-            string flavor {"chocolate"},
-            BOOL byUnit {FALSE}
-        }
-}
+    "vegetables": {
+        "onnion": {
+            "colour": "white",
+            "seed": FALSE
+            },
+        "potato": {
+            "colour": "red",
+            "seed": TRUE
+            }
+        }, // More test comments
+    }
 
-INT i {0}
+// Comment just comment
+// Let's try again  
 
-// Loops
-FOR item IN inventory
+FOR item IN complex_dict
 {
-    // Flow control
-    IF item.value.flavor == "chocolate"
-    {
-        IF item.value.quantity > 3
-        {
-            INT quantity {3}
-
-            // Update elements
-            item.value.quantity = item.value.quantity - 3
-            // Aux functions
-            PRINT("You bought ", quantity, " of ", item.key)
-            // Update array
-            wishList[i] = {STRING name {item.key}, INT quantityToBuy {quantity}}
-            i = i + 1
-        }
+    DICTIONARY client {
+        "name": "Charles",
+        "lastName": "Perez",
+        "id": 55555555
     }
-    ELSE
-    {
-        IF item.value.quantity > 1
-        {
-            INT quantity {1}
-            
-            // Update elements
-            item.value.quantity = item.value.quantity - 1
-            // Aux functions
-            PRINT("You bought ", quantity, " of ", item.key)
-            // Update array
-            wishList[i] = {STRING name {item.key}, INT quantityToBuy {quantity}}
-            i = i + 1
-        }
+    client["lastName"] = "Leclerc" 
+    // Some comments for here
+    // Ha!, lets due it
+    FOR dataCl IN client {
+        BOOL stillWaiting {FALSE} // Let's break this parser
+        PRINT(dataCl, "")
     }
 }
+
+PRINT(a, "Hola mundo!")
+
+a = "Hola universo!" // Break?
+inventory["apple"] = 80 // Doble break?
+complex_dict["apple"]["colour"] = "Green"
+
+INT array[3] = {1,2,3}
+
+array[2] = 4
+
