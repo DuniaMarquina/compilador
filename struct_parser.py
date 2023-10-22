@@ -160,7 +160,7 @@ def p_expr(p):
             | modification comments
             | modification
             | def_vector
-            | if"""
+            | d_block"""
     p[0] = [p[1]]
 
 def p_init_list(p):
@@ -206,65 +206,72 @@ def p_for(p):
     """for  : FOR id IN id LCURLY_BRACE code RCURLY_BRACE"""
     p[0] = ('for', p[2], p[4], p[6])
 
+def p_des_block(p):
+    """d_block : if elif else
+               | if elif
+               | if else
+               | if empty"""
+    if len(p) == 4: #if elif else
+        p[0] = ('d_block', [p[1], *p[2], p[3]])
+    elif isinstance(p[2], list): #if elif
+        p[0] = ('d_block', [p[1], *p[2]])
+    elif isinstance(p[2], tuple): #if else
+        p[0] = ('d_block', [p[1], p[2]])
+    else: #if
+        p[0] = ('d_block', [p[1]])
+
+def p_empty(p): # Auxiliar producction to handle alone if declaration
+    """empty :"""
+    pass
+
 def p_if(p):
-    """if : IF condition LCURLY_BRACE code RCURLY_BRACE"""
-    p[0] = ('if', p[2], p[4])
-    
+    """if : IF LPAREN condition RPAREN LCURLY_BRACE code RCURLY_BRACE"""
+    p[0] = ('if', p[3], p[6])
+
 def p_elif(p):
     """
-    elif : ELIF condition LCURLY_BRACE code RCURLY_BRACE
-         | ELIF condition LCURLY_BRACE code RCURLY_BRACE elif
+    elif : ELIF LPAREN condition RPAREN LCURLY_BRACE code RCURLY_BRACE
+         | elif elif
     """
-    if len(p) == 6:
-        p[0] = ('elif', p[2], p[4])
-    else:
-        p[0] = ('elif', p[2], p[4], p[6])
-
-def p_else(p):
-    """
-    else : ELSE LCURLY_BRACE code RCURLY_BRACE
-    """
-    p[0] = ('else', p[3])
-    
-#Operaciones numéricas (revisar)
-def p_sum(p):
-    """expr : expr PLUS term
-            | term"""
-    if len(p) > 2:
-        p[0] = ('add', p[1], p[3])
-    else:
+    if len(p) == 8: #ELIF condition LCURLY_BRACE code RCURLY_BRACE
+        p[0] = [('elif', p[3], p[6])]
+    else: #elif elif
+        p[1].extend(p[2])
         p[0] = p[1]
 
-def p_expr_sub(p):
-    """expr : expr MINUS term
-            | term"""
+def p_else(p):
+    """ else : ELSE LCURLY_BRACE code RCURLY_BRACE """
+    p[0] = ('else', p[3])
+
+#Operaciones numéricas (revisar)
+def p_sentence(p):
+    """sentence : sentence PLUS term
+                | sentence MINUS term
+                | term"""
     if len(p) > 2:
-        p[0] = ('subtract', p[1], p[3])
+        if p[2] == '+':
+            p[0] = ('add', p[1], p[3])
+        else:
+            p[0] = ('subtract', p[1], p[3])
     else:
         p[0] = p[1]
 
 def p_term_mult(p):
-    """term : term TIMES factor
-            | factor"""
+    """term : term TIMES r_value
+            | term DIVIDE r_value
+            | r_value"""
     if len(p) > 2:
-        p[0] = ('multiply', p[1], p[3])
+        if p[2] == '*':
+            p[0] = ('multiply', p[1], p[3])
+        else:
+            p[0] = ('divide', p[1], p[3])
     else:
         p[0] = p[1]
-
-def p_term_div(p):
-    """term : term DIVIDE factor
-            | factor"""
-    if len(p) > 2:
-        p[0] = ('divide', p[1], p[3])
-    else:
-        p[0] = p[1]
-
-
 
 def p_condition(p):
-    """condition : id comp id
-                 | id comp r_value
-                 | r_value comp id"""
+    """condition : sentence comp id
+                 | id comp sentence
+                 | id comp id"""
     p[0] = ('condition', p[1], p[2], p[3])
 
 def p_comp(p):
@@ -287,7 +294,6 @@ def p_size(p):
 def p_def_vector(p): 
     """ def_vector : type id LBRACKET size RBRACKET ASSINGMENT LCURLY_BRACE element RCURLY_BRACE"""
     p[0] = ('def_vector', p[1], p[2], p[4], p[8])
-
 
 def p_element(p):
     """element : element COMMA r_value
@@ -345,6 +351,7 @@ def p_r_value(p):
                | FALSE
                | TRUE
                | R_STRING
+               | sentence
                | NUMBER comments
                | FALSE comments
                | TRUE comments

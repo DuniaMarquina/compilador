@@ -1,25 +1,19 @@
-STRING a {"Hola mundo!"}
+INT a {1}
+INT b {10}
+STRING message_true {"Verdadero!"}
+STRING message_false {"Falso!"}
 
-DICTIONARY inventory {"apple": 5, "banana": 3, "orange": 2}
-DICTIONARY complex_dict {
-    "fruits": {
-        "apple": {
-            "colour": "red",
-            "seed": TRUE
-            },
-        "banana": {
-            "colour": "yellow",
-            "seed": TRUE
-            }
-        },
-    "vegetables": {
-        "onnion": {
-            "colour": "white",
-            "seed": FALSE
-            },
-        "potato": {
-            "colour": "red",
-            "seed": TRUE
-            }
-        },
-    }
+IF (a < b) {
+    PRINT(message_true)
+}
+ELIF (a == b)
+{
+    BOOL b {FALSE}
+}
+ELIF (a > b)
+{
+    BOOL b {TRUE}
+}
+ELSE {
+    PRINT(message_false)
+}
