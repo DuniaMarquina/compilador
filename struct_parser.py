@@ -36,12 +36,12 @@ simple_tokens = [
    'LBRACKET',
    'LCURLY_BRACE',
    'RCURLY_BRACE',
-   #'EQUAL',
+   'EQUAL',
    'ASSINGMENT',
-#   'LESS_EQUAL',
-#   'LESS',
- #  'GREATER',
-  # 'GREATER_EQUAL',
+   'LESS_EQUAL',
+   'LESS',
+   'GREATER',
+   'GREATER_EQUAL',
    'COMMA',
    'COLON',
    #'QUOTE',
@@ -60,9 +60,9 @@ reserved = {
    'DICTIONARY': 'DICTIONARY',
    'FOR': 'FOR',
    'IN': 'IN',
-#   'IF': 'IF',
-#   'ELIF': 'ELIF',
-#   'ELSE': 'ELSE',
+   'IF': 'IF',
+  # 'ELIF': 'ELIF',
+   #'ELSE': 'ELSE',
    'PRINT': 'PRINT'
 }
 
@@ -81,12 +81,12 @@ t_LBRACKET = r'\['
 t_RBRACKET = r'\]'
 t_LCURLY_BRACE = r'\{'
 t_RCURLY_BRACE = r'\}'
-#t_EQUAL = r'=='
+t_EQUAL = r'=='
 t_ASSINGMENT = r'='
-#t_LESS_EQUAL = r'<='
-#t_LESS = r'<'
-#t_GREATER = r'>'
-#t_GREATER_EQUAL = r'>='
+t_LESS_EQUAL = r'<='
+t_LESS = r'<'
+t_GREATER = r'>'
+t_GREATER_EQUAL = r'>='
 t_COMMA = r','
 t_COLON = r':'
 #t_QUOTE = r'"'
@@ -159,9 +159,9 @@ def p_expr(p):
             | print
             | modification comments
             | modification
-            | comments"""
-    if p[1]:
-        p[0] = [p[1]]
+            | def_vector
+            | if"""
+    p[0] = [p[1]]
 
 def p_init_list(p):
     """init_list : init_list dict_value
@@ -194,56 +194,58 @@ def p_suite_value(p):
         p[0] = p[1]
 
 def p_assig(p):
-    """assig : type id LCURLY_BRACE value RCURLY_BRACE
+    """assig : type id LCURLY_BRACE r_value RCURLY_BRACE
              | type id LCURLY_BRACE init_list RCURLY_BRACE
-             | type id LCURLY_BRACE comments init_list RCURLY_BRACE
-             | type id index h_level"""
-    if len(p) == 5: #type id index h_level
-        p[0] = (p[1][1].lower()+'_vector_asig', p[1], p[2], p[3], p[4])
-    elif len(p) == 6:
-        if isinstance(p[4], tuple): #type id LCURLY_BRACE value RCURLY_BRACE
-            p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[4])
-        elif isinstance(p[4],list): #type id LCURLY_BRACE init_list RCURLY_BRACE
-            p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[4])
-    elif len(p) == 7: #type id LCURLY_BRACE comments init_list RCURLY_BRACE
-        p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[5])
+             | type id LCURLY_BRACE comments init_list RCURLY_BRACE"""
+    if len(p) == 6:
+        p[0] = ('asig', p[1], p[2], p[4])
+    else:
+        p[0] = ('asig', p[1], p[2], p[5])
 
 def p_for(p):
     """for  : FOR id IN id LCURLY_BRACE code RCURLY_BRACE"""
     p[0] = ('for', p[2], p[4], p[6])
 
+def p_if(p):
+    """if : IF condition LCURLY_BRACE code RCURLY_BRACE"""
+    p[0] = ('if', p[2], p[4])
+
+def p_condition(p):
+    """condition : id comp id
+                 | id comp r_value
+                 | r_value comp id"""
+    p[0] = ('condition', p[1], p[2], p[3])
+
+def p_comp(p):
+    """comp : EQUAL
+            | LESS_EQUAL
+            | LESS
+            | GREATER
+            | GREATER_EQUAL"""
+    p[0] = ('comp', p[1])
+
+
 def p_print(p):
     """print : PRINT LPAREN init_list RPAREN"""
     p[0] = ('print:', p[3])
 
-def p_high_level(p):
-    """h_level : h_level COMMA comments l_level
-               | h_level COMMA l_level
-               | l_level """
-    if len(p) == 2:
-        p[0] = [p[1]]
-    elif len(p) == 4:
-        p[1].append(p[3])
-        p[0] = p[1]
-    else:
-        p[1].append(p[4])
-        p[0] = p[1]
-                           
-def p_lower_level(p):
-    """l_level : value
-               | LCURLY_BRACE h_level RCURLY_BRACE
-               | LCURLY_BRACE comments h_level RCURLY_BRACE"""
-    if len(p) == 2:
-        p[0] = p[1]
-    elif len(p) == 4:
-        p[0] = ('level',p[2])
-    else:
-        p[0] = ('level',p[3])
+def p_size(p):
+    """ size : NUMBER"""
+    p[0] = ('size',p[1])
 
-def p_value(p):
-    """value : r_value
-             | id"""
-    p[0] = p[1]
+def p_def_vector(p): 
+    """ def_vector : type id LBRACKET size RBRACKET ASSINGMENT LCURLY_BRACE element RCURLY_BRACE"""
+    p[0] = ('def_vector', p[1], p[2], p[4], p[8])
+
+
+def p_element(p):
+    """element : element COMMA r_value
+               | r_value"""
+    if len(p) == 2 :
+        p[0] = [p[1]]       
+    else:
+        p[0] = p[1] + [p[3]]
+     
 
 def p_modification(p):
     """modification : id ASSINGMENT r_value
@@ -256,8 +258,7 @@ def p_modification(p):
 def p_index(p):
     """index : LBRACKET key RBRACKET
              | index LBRACKET key RBRACKET
-             | LBRACKET pos RBRACKET
-             | index LBRACKET pos RBRACKET"""
+             | LBRACKET pos RBRACKET"""
     if len(p) == 4:
         p[0] = [p[2]]
     else:
