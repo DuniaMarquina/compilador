@@ -26,10 +26,10 @@ entry_args = sys.argv
 # List of simple token names.
 simple_tokens = [
    'NUMBER',
- #  'PLUS',
- #  'MINUS',
- #  'TIMES',
- #  'DIVIDE',
+   'PLUS',
+   'MINUS',
+   'TIMES',
+   'DIVIDE',
    'LPAREN',
    'RPAREN',
    'RBRACKET',
@@ -70,11 +70,11 @@ reserved = {
 tokens = simple_tokens + list(reserved.values())
 
 # Regular expression rules for simple tokens
-#t_PLUS    = r'\+'
-#t_MINUS   = r'-'
-#t_TIMES   = r'\*'
+t_PLUS    = r'\+'
+t_MINUS   = r'-'
+t_TIMES   = r'\*'
 t_COMMENT = r'//.*'
-#t_DIVIDE  = r'/'
+t_DIVIDE  = r'/'
 t_LPAREN  = r'\('
 t_RPAREN  = r'\)'
 t_LBRACKET = r'\['
@@ -168,15 +168,9 @@ def p_init_list(p):
                  | init_list arg
                  | init_list COMMA comments
                  | init_list COMMA
-<<<<<<< HEAD
-                 | init_list NEW_LINE
-                 | dict_value"""
-    if len(p) == 2: #caso base cuando init_list esta iniciandose 
-=======
                  | dict_value
                  | arg"""
     if len(p) == 2:
->>>>>>> kevin
         p[0] = [p[1]]
     elif p[1] and isinstance(p[2],tuple):
         p[1].append(p[2])  #se anaden lineas que se van procesando (sentancia clave-valor)
@@ -231,6 +225,40 @@ def p_else(p):
     else : ELSE LCURLY_BRACE code RCURLY_BRACE
     """
     p[0] = ('else', p[3])
+    
+#Operaciones numéricas (revisar)
+def p_sum(p):
+    """expr : expr PLUS term
+            | term"""
+    if len(p) > 2:
+        p[0] = ('add', p[1], p[3])
+    else:
+        p[0] = p[1]
+
+def p_expr_sub(p):
+    """expr : expr MINUS term
+            | term"""
+    if len(p) > 2:
+        p[0] = ('subtract', p[1], p[3])
+    else:
+        p[0] = p[1]
+
+def p_term_mult(p):
+    """term : term TIMES factor
+            | factor"""
+    if len(p) > 2:
+        p[0] = ('multiply', p[1], p[3])
+    else:
+        p[0] = p[1]
+
+def p_term_div(p):
+    """term : term DIVIDE factor
+            | factor"""
+    if len(p) > 2:
+        p[0] = ('divide', p[1], p[3])
+    else:
+        p[0] = p[1]
+
 
 
 def p_condition(p):
