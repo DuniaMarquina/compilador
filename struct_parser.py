@@ -427,24 +427,21 @@ def translate_to_python(node):
                 return value
         else:
             return value
+    
+    # Helper function to create nodes of type ast.Constant or ast.Name:load
+    def create_node(n): 
+        if n[0] == 'r_value':
+            value = parse_types(n[1])
+            a_n = ast.Constant(value)
+        elif n[0] == 'id':
+            a_n = ast.Name(n[1], ast.Load())
+        return a_n
 
     #print(node) # To debug
     ast_node = None # Node to generate
     if node[0] == 'string_asig' or node[0] == 'int_asig' or node[0] == 'bool_asig': # Case: Incomming node is type asig
-        if node[3][0] == 'id': # Node type:string_asig=id -> ast.Assing=Name
-            ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], ast.Name(node[3][1],ast.Load()))
-        elif node[3][0] == 'r_value': # Node type:string_asig=r_value -> ast.Assing=const
-            value = parse_types(node[3][1])
-            ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], ast.Constant(value))
+            ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], create_node(node[3]))
     elif node[0] == 'string_vector_asig' or node[0] == 'int_vector_asig' or node[0] == 'bool_vector_asig': # Case: Incomming node is type vector_asig
-        def create_node(n):
-            if n[0] == 'r_value':
-                value = parse_types(n[1])
-                a_n = ast.Constant(value)
-            elif n[0] == 'id':
-                a_n = ast.Name(n[1], ast.Load())
-            return a_n
-
         def go_deep(level):
             list_values = [] #List of args for ast.List
             for item in level:
@@ -459,10 +456,7 @@ def translate_to_python(node):
         ast_node = ast.Assign([ast.Name(node[2][1], ctx=ast.Store())], ast.List(go_deep(node[4]), ctx=ast.Load()))
         
     elif node[0] == 'modification':
-        if node[2][0] == 'id': # Node type:modification=id -> ast.Assing=Name
-            ast_node = ast.Assign([ast.Name(node[1][1],ast.Store())], ast.Name(node[2][1],ast.Load()))
-        elif node[2][0] == 'r_value': # Node type:modification=r_value -> ast.Assing=const
-            ast_node = ast.Assign([ast.Name(node[1][1],ast.Store())], ast.Constant(node[2][1]))
+        ast_node = ast.Assign([ast.Name(node[1][1],ast.Store())], create_node(node[2]))
     elif node[0] == 'print': # Case: Incomming node is type print
         l_ast_args = [] #List of args for ast.Call
         for arg in node[1]: # List f_args of print node
