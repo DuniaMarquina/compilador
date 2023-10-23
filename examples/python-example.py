@@ -1,4 +1,3 @@
-a = 4
-array_int = [[1,2],[3,a]]
+inventory = {"apple": 5, "banana": 3, "orange": 2}
 
-print(array_int)
+print(inventory)

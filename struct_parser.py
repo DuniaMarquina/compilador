@@ -430,10 +430,13 @@ def translate_to_python(node):
             return value
     
     # Helper function to create nodes of type ast.Constant or ast.Name:load
+    # Valid entry nodes of type r_value, key or id 
     def create_node(n): 
         if n[0] == 'r_value':
             value = parse_types(n[1])
             a_n = ast.Constant(value)
+        elif n[0] == 'key':
+            a_n = ast.Constant(n[1])
         elif n[0] == 'id':
             a_n = ast.Name(n[1], ast.Load())
         return a_n
@@ -455,7 +458,15 @@ def translate_to_python(node):
             return list_values
 
         ast_node = ast.Assign([ast.Name(node[2][1], ctx=ast.Store())], ast.List(go_deep(node[4]), ctx=ast.Load()))
-        
+    elif node[0] == 'dictionary_asig':
+        #('dictionary_asig', ('type', 'DICTIONARY'), ('id', 'inventory'),
+        #('d_value', ('key', 'apple'), ('r_value', 5))
+        keys = []
+        values = []
+        for dict_value in node[3]:
+            keys.append(create_node(dict_value[1]))
+            values.append(create_node(dict_value[2]))
+        ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], ast.Dict(keys,values))
     elif node[0] == 'modification': # Case: Incomming node is type modification (modification != definition)
         ast_node = ast.Assign([ast.Name(node[1][1],ast.Store())], create_node(node[2]))
     elif node[0] == 'print': # Case: Incomming node is type print
