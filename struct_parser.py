@@ -417,6 +417,7 @@ p_tree = ast.parse(source_code, mode='exec')
 
 # Function to translate generate AST to python AST 
 def translate_to_python(node):
+    # Helper to pass struct right values to python right values
     def parse_types(value):
         if isinstance(value, str):
             if value == 'TRUE':
@@ -440,7 +441,7 @@ def translate_to_python(node):
     #print(node) # To debug
     ast_node = None # Node to generate
     if node[0] == 'string_asig' or node[0] == 'int_asig' or node[0] == 'bool_asig': # Case: Incomming node is type asig
-            ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], create_node(node[3]))
+        ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], create_node(node[3]))
     elif node[0] == 'string_vector_asig' or node[0] == 'int_vector_asig' or node[0] == 'bool_vector_asig': # Case: Incomming node is type vector_asig
         def go_deep(level):
             list_values = [] #List of args for ast.List
@@ -455,15 +456,12 @@ def translate_to_python(node):
 
         ast_node = ast.Assign([ast.Name(node[2][1], ctx=ast.Store())], ast.List(go_deep(node[4]), ctx=ast.Load()))
         
-    elif node[0] == 'modification':
+    elif node[0] == 'modification': # Case: Incomming node is type modification (modification != definition)
         ast_node = ast.Assign([ast.Name(node[1][1],ast.Store())], create_node(node[2]))
     elif node[0] == 'print': # Case: Incomming node is type print
         l_ast_args = [] #List of args for ast.Call
         for arg in node[1]: # List f_args of print node
-            if arg[1][0] == 'id': # Node type:id -> ast.Name
-                l_ast_args.append(ast.Name(arg[1][1],ast.Load()))
-            elif arg[1][0] == 'r_value': # Node type:r_value -> ast.Constant
-                l_ast_args.append(ast.Constant(arg[1][1]))
+            l_ast_args.append(create_node(arg[1]))
         ast_node = ast.Expr(ast.Call(ast.Name('print', ast.Load()), l_ast_args, []))
     
     #print(ast.dump(ast_node, include_attributes=True, indent=4)) # To debug

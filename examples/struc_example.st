@@ -7,4 +7,4 @@ BOOL pixel_to_draw[3][2][3] {
     {{FALSE,TRUE,TRUE},{FALSE,TRUE,FALSE}}
 }
 
-PRINT(array_int, array_str, pixel_to_draw)
+PRINT(array_int, array_str, pixel_to_draw, "Constant node")
