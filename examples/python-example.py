@@ -1,3 +1,4 @@
-a = 'Hola mundo!'
+a = 4
+array_int = [[1,2],[3,a]]
 
-print(a)
+print(array_int)

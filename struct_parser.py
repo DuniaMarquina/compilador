@@ -193,7 +193,7 @@ def p_assig(p):
              | type id LCURLY_BRACE comments init_list RCURLY_BRACE
              | type id index h_level"""
     if len(p) == 5: #type id index h_level
-        p[0] = (p[1][1].lower()+'_vector_asig', p[1], p[2], p[3], p[4])
+        p[0] = (p[1][1].lower()+'_vector_asig', p[1], p[2], p[3], *p[4])
     elif len(p) == 6:
         if isinstance(p[4], tuple): #type id LCURLY_BRACE value RCURLY_BRACE
             p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[4])
@@ -306,9 +306,9 @@ def p_lower_level(p):
     if len(p) == 2:
         p[0] = p[1]
     elif len(p) == 4:
-        p[0] = ('level',p[2])
+        p[0] = p[2]
     else:
-        p[0] = ('level',p[3])
+        p[0] = p[3]
 
 def p_value(p):
     """value : r_value
@@ -418,14 +418,48 @@ p_tree = ast.parse(source_code, mode='exec')
 # Function to translate generate AST to python AST 
 def translate_to_python(node):
     #print(node) # To debug
-    ast_node = None
-    if node[0] == 'string_asig': 
+    ast_node = None # Node to generate
+    if node[0] == 'string_asig' or node[0] == 'int_asig' or node[0] == 'bool_asig': # Case: Incomming node is type asig
         if node[3][0] == 'id': # Node type:string_asig=id -> ast.Assing=Name
             ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], ast.Name(node[3][1],ast.Load()))
         elif node[3][0] == 'r_value': # Node type:string_asig=r_value -> ast.Assing=const
             ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], ast.Constant(node[3][1]))
+    #('int_vector_asig', ('type', 'INT'), ('id', 'array_int'), [('pos', 3)], [
+#    ('level', [('r_value', 1), ('r_value', 2), ('r_value', 3)])
+    elif node[0] == 'string_vector_asig' or node[0] == 'int_vector_asig' or node[0] == 'bool_vector_asig':
+        def create_node(n,tab):
+            #print(tab + "creando: ", n)
+            if n[0] == 'r_value':
+                a_n = ast.Constant(n[1])
+            elif n[0] == 'id':
+                a_n = ast.Name(n[1], ast.Load())
+            #print(tab +"retornando: ", a_n)
+            return a_n
 
-    elif node[0] == 'print':
+        def go_deep(level, tab):
+            list_values = [] #List of args for ast.List in ast.Assing
+            #print(tab +"nivel actual: ", level)
+            for item in level:
+                #print(tab +"item actual: ", item)
+                if isinstance(item, list):
+                    #print(tab + "bajando un nivel")
+                    aux = go_deep(item, tab + "\t")
+                    list_values.append(ast.List(aux, ctx=ast.Load()))
+                    #print(tab + "Subiendo un nivel")
+                else:
+                    list_values.append(create_node(item,tab + "\t"))
+                    
+                #print(tab,list_values)
+            return list_values
+
+        ast_node = ast.Assign([ast.Name(node[2][1], ctx=ast.Store())], ast.List(go_deep(node[4],""), ctx=ast.Load()))
+        
+    elif node[0] == 'modification':
+        if node[2][0] == 'id': # Node type:modification=id -> ast.Assing=Name
+            ast_node = ast.Assign([ast.Name(node[1][1],ast.Store())], ast.Name(node[2][1],ast.Load()))
+        elif node[2][0] == 'r_value': # Node type:modification=r_value -> ast.Assing=const
+            ast_node = ast.Assign([ast.Name(node[1][1],ast.Store())], ast.Constant(node[2][1]))
+    elif node[0] == 'print': # Case: Incomming node is type print
         l_ast_args = [] #List of args for ast.Call
         for arg in node[1]: # List f_args of print node
             if arg[1][0] == 'id': # Node type:id -> ast.Name
