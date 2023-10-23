@@ -52,34 +52,19 @@ a = "Hola universo!" // Break?
 inventory["apple"] = 80 // Doble break?
 complex_dict["apple"]["colour"] = "Green"
 
-INT x {10} //Comment
+INT array[3] = {1,2,3}
 
-INT array[4] {1,2,3,4}
-//Comment
-INT arr2[2][2][2] { // Comment
-    { {3, 3}, {x, 4} }, // Comment
-    //Comment
-    { {5, 5}, {6, 6} }
-}//Coment
+array[2] = 4
 
-arr[2][3][1] = 4
-
-INT a {1}
-INT b {10}
-STRING message_true {"Verdadero!"}
-STRING message_false {"Falso!"}
-
-IF (a < b) {
-    PRINT(message_true)
+IF b > 10 
+{ 
+    c = 6
 }
-ELIF (a == b)
+ELIF b < 5
+{ 
+    c = 3
+}
+ELSE
 {
-    BOOL b {FALSE}
-}
-ELIF (a > b)
-{
-    BOOL b {TRUE}
-}
-ELSE {
-    PRINT(message_false)
+    c = 9
 }

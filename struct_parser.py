@@ -26,22 +26,22 @@ entry_args = sys.argv
 # List of simple token names.
 simple_tokens = [
    'NUMBER',
- #  'PLUS',
- #  'MINUS',
- #  'TIMES',
- #  'DIVIDE',
+   'PLUS',
+   'MINUS',
+   'TIMES',
+   'DIVIDE',
    'LPAREN',
    'RPAREN',
    'RBRACKET',
    'LBRACKET',
    'LCURLY_BRACE',
    'RCURLY_BRACE',
-   #'EQUAL',
+   'EQUAL',
    'ASSINGMENT',
-#   'LESS_EQUAL',
-#   'LESS',
- #  'GREATER',
-  # 'GREATER_EQUAL',
+   'LESS_EQUAL',
+   'LESS',
+   'GREATER',
+   'GREATER_EQUAL',
    'COMMA',
    'COLON',
    #'QUOTE',
@@ -59,9 +59,9 @@ reserved = {
    'DICTIONARY': 'DICTIONARY',
    'FOR': 'FOR',
    'IN': 'IN',
-#   'IF': 'IF',
-#   'ELIF': 'ELIF',
-#   'ELSE': 'ELSE',
+   'IF': 'IF',
+   'ELIF': 'ELIF',
+   'ELSE': 'ELSE',
    'PRINT': 'PRINT'
 }
 
@@ -69,23 +69,23 @@ reserved = {
 tokens = simple_tokens + list(reserved.values())
 
 # Regular expression rules for simple tokens
-#t_PLUS    = r'\+'
-#t_MINUS   = r'-'
-#t_TIMES   = r'\*'
+t_PLUS    = r'\+'
+t_MINUS   = r'-'
+t_TIMES   = r'\*'
 t_COMMENT = r'//.*'
-#t_DIVIDE  = r'/'
+t_DIVIDE  = r'/'
 t_LPAREN  = r'\('
 t_RPAREN  = r'\)'
 t_LBRACKET = r'\['
 t_RBRACKET = r'\]'
 t_LCURLY_BRACE = r'\{'
 t_RCURLY_BRACE = r'\}'
-#t_EQUAL = r'=='
+t_EQUAL = r'=='
 t_ASSINGMENT = r'='
-#t_LESS_EQUAL = r'<='
-#t_LESS = r'<'
-#t_GREATER = r'>'
-#t_GREATER_EQUAL = r'>='
+t_LESS_EQUAL = r'<='
+t_LESS = r'<'
+t_GREATER = r'>'
+t_GREATER_EQUAL = r'>='
 t_COMMA = r','
 t_COLON = r':'
 #t_QUOTE = r'"'
@@ -152,6 +152,7 @@ def p_expr(p):
             | print
             | modification comments
             | modification
+            | d_block
             | comments"""
     if p[1]:
         p[0] = [p[1]]
@@ -166,9 +167,9 @@ def p_init_list(p):
     if len(p) == 2:
         p[0] = [p[1]]
     elif p[1] and isinstance(p[2],tuple):
-        p[1].append(p[2])
-        p[0] = p[1]
-    else:
+        p[1].append(p[2])  #se anaden lineas que se van procesando (sentancia clave-valor)
+        p[0] = p[1] #p[0] retorno em .yacc
+    else: # corresponde a los casos intermedios 
         p[0] = p[1]
 
 def p_dict_value(p):
@@ -205,6 +206,82 @@ def p_for(p):
     """for  : FOR id IN id LCURLY_BRACE code RCURLY_BRACE"""
     p[0] = ('for', p[2], p[4], p[6])
 
+def p_des_block(p):
+    """d_block : if elif else
+               | if elif
+               | if else
+               | if empty"""
+    if len(p) == 4: #if elif else
+        p[0] = ('d_block', [p[1], *p[2], p[3]])
+    elif isinstance(p[2], list): #if elif
+        p[0] = ('d_block', [p[1], *p[2]])
+    elif isinstance(p[2], tuple): #if else
+        p[0] = ('d_block', [p[1], p[2]])
+    else: #if
+        p[0] = ('d_block', [p[1]])
+
+def p_empty(p): # Auxiliar producction to handle alone if declaration
+    """empty :"""
+    pass
+
+def p_if(p):
+    """if : IF LPAREN condition RPAREN LCURLY_BRACE code RCURLY_BRACE"""
+    p[0] = ('if', p[3], p[6])
+
+def p_elif(p):
+    """
+    elif : ELIF LPAREN condition RPAREN LCURLY_BRACE code RCURLY_BRACE
+         | elif elif
+    """
+    if len(p) == 8: #ELIF condition LCURLY_BRACE code RCURLY_BRACE
+        p[0] = [('elif', p[3], p[6])]
+    else: #elif elif
+        p[1].extend(p[2])
+        p[0] = p[1]
+
+def p_else(p):
+    """ else : ELSE LCURLY_BRACE code RCURLY_BRACE """
+    p[0] = ('else', p[3])
+
+#Operaciones numéricas (revisar)
+def p_sentence(p):
+    """sentence : sentence PLUS term
+                | sentence MINUS term
+                | term"""
+    if len(p) > 2:
+        if p[2] == '+':
+            p[0] = ('add', p[1], p[3])
+        else:
+            p[0] = ('subtract', p[1], p[3])
+    else:
+        p[0] = p[1]
+
+def p_term_mult(p):
+    """term : term TIMES r_value
+            | term DIVIDE r_value
+            | r_value"""
+    if len(p) > 2:
+        if p[2] == '*':
+            p[0] = ('multiply', p[1], p[3])
+        else:
+            p[0] = ('divide', p[1], p[3])
+    else:
+        p[0] = p[1]
+
+def p_condition(p):
+    """condition : sentence comp id
+                 | id comp sentence
+                 | id comp id"""
+    p[0] = ('condition', p[1], p[2], p[3])
+
+def p_comp(p):
+    """comp : EQUAL
+            | LESS_EQUAL
+            | LESS
+            | GREATER
+            | GREATER_EQUAL"""
+    p[0] = ('comp', p[1])
+
 def p_print(p):
     """print : PRINT LPAREN init_list RPAREN"""
     p[0] = ('print:', p[3])
@@ -237,6 +314,18 @@ def p_value(p):
     """value : r_value
              | id"""
     p[0] = p[1]
+
+def p_size(p):
+    """ size : NUMBER"""
+    p[0] = ('size',p[1])
+
+def p_element(p):
+    """element : element COMMA r_value
+               | r_value"""
+    if len(p) == 2 :
+        p[0] = [p[1]]       
+    else:
+        p[0] = p[1] + [p[3]]
 
 def p_modification(p):
     """modification : id ASSINGMENT r_value
