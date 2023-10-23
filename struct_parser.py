@@ -417,42 +417,46 @@ p_tree = ast.parse(source_code, mode='exec')
 
 # Function to translate generate AST to python AST 
 def translate_to_python(node):
+    def parse_types(value):
+        if isinstance(value, str):
+            if value == 'TRUE':
+                return True
+            elif value == 'FALSE':
+                return False
+            else:
+                return value
+        else:
+            return value
+
     #print(node) # To debug
     ast_node = None # Node to generate
     if node[0] == 'string_asig' or node[0] == 'int_asig' or node[0] == 'bool_asig': # Case: Incomming node is type asig
         if node[3][0] == 'id': # Node type:string_asig=id -> ast.Assing=Name
             ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], ast.Name(node[3][1],ast.Load()))
         elif node[3][0] == 'r_value': # Node type:string_asig=r_value -> ast.Assing=const
-            ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], ast.Constant(node[3][1]))
-    #('int_vector_asig', ('type', 'INT'), ('id', 'array_int'), [('pos', 3)], [
-#    ('level', [('r_value', 1), ('r_value', 2), ('r_value', 3)])
-    elif node[0] == 'string_vector_asig' or node[0] == 'int_vector_asig' or node[0] == 'bool_vector_asig':
-        def create_node(n,tab):
-            #print(tab + "creando: ", n)
+            value = parse_types(node[3][1])
+            ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], ast.Constant(value))
+    elif node[0] == 'string_vector_asig' or node[0] == 'int_vector_asig' or node[0] == 'bool_vector_asig': # Case: Incomming node is type vector_asig
+        def create_node(n):
             if n[0] == 'r_value':
-                a_n = ast.Constant(n[1])
+                value = parse_types(n[1])
+                a_n = ast.Constant(value)
             elif n[0] == 'id':
                 a_n = ast.Name(n[1], ast.Load())
-            #print(tab +"retornando: ", a_n)
             return a_n
 
-        def go_deep(level, tab):
-            list_values = [] #List of args for ast.List in ast.Assing
-            #print(tab +"nivel actual: ", level)
+        def go_deep(level):
+            list_values = [] #List of args for ast.List
             for item in level:
-                #print(tab +"item actual: ", item)
-                if isinstance(item, list):
-                    #print(tab + "bajando un nivel")
-                    aux = go_deep(item, tab + "\t")
+                if isinstance(item, list): # Append list
+                    aux = go_deep(item)
                     list_values.append(ast.List(aux, ctx=ast.Load()))
-                    #print(tab + "Subiendo un nivel")
-                else:
-                    list_values.append(create_node(item,tab + "\t"))
-                    
-                #print(tab,list_values)
+                else: # Append ast.Name or ast.Constant
+                    list_values.append(create_node(item))
+
             return list_values
 
-        ast_node = ast.Assign([ast.Name(node[2][1], ctx=ast.Store())], ast.List(go_deep(node[4],""), ctx=ast.Load()))
+        ast_node = ast.Assign([ast.Name(node[2][1], ctx=ast.Store())], ast.List(go_deep(node[4]), ctx=ast.Load()))
         
     elif node[0] == 'modification':
         if node[2][0] == 'id': # Node type:modification=id -> ast.Assing=Name
