@@ -64,19 +64,19 @@ INT arr2[2][2][2] { // Comment
 
 arr[2][3][1] = 4
 
-INT a {1}
+INT c {1}
 INT b {10}
 STRING message_true {"Verdadero!"}
 STRING message_false {"Falso!"}
 
-IF (a < b) {
+IF (c < b) {
     PRINT(message_true)
 }
-ELIF (a == b)
+ELIF (c == b)
 {
     BOOL b {FALSE}
 }
-ELIF (a > b)
+ELIF (c > b)
 {
     BOOL b {TRUE}
 }

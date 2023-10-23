@@ -315,18 +315,6 @@ def p_value(p):
              | id"""
     p[0] = p[1]
 
-def p_size(p):
-    """ size : NUMBER"""
-    p[0] = ('size',p[1])
-
-def p_element(p):
-    """element : element COMMA r_value
-               | r_value"""
-    if len(p) == 2 :
-        p[0] = [p[1]]       
-    else:
-        p[0] = p[1] + [p[3]]
-
 def p_modification(p):
     """modification : id ASSINGMENT r_value
                     | id index ASSINGMENT r_value"""
