@@ -1,4 +1,4 @@
-import sys, logging
+import ast, sys, logging
 import ply.yacc as yacc
 import ply.lex as lex
 
@@ -284,7 +284,7 @@ def p_comp(p):
 
 def p_print(p):
     """print : PRINT LPAREN init_list RPAREN"""
-    p[0] = ('print:', p[3])
+    p[0] = ('print', p[3])
 
 def p_high_level(p):
     """h_level : h_level COMMA comments l_level
@@ -382,6 +382,10 @@ def p_commets(p):
 def p_error(p):
     SyntaxError(p)
 
+
+"""
+    Zone of parsing 
+"""
 # Build the lexer
 lexer = lex.lex()
 # Build the parser
@@ -396,16 +400,77 @@ with open(source_file, 'r') as source_file:
 
 source_file.close()
 
-def recursive_dump(root, dump_file):
-    for exp in root:
-        dump_file.write(str(exp))
-        dump_file.write("\n\n")
-
-    # Use with ast python module
-    #for node in ast.iter_child_nodes(root):
-        #dump_file.write(ast.dump(node))
-        #dump_file.write("\n\n")
-
 tree = parser.parse(source_code, lexer=lexer, debug=logging.getLogger())
+
+# Generate a reference python AST to compare with us AST
+source_code = '' 
+with open('examples/python-example.py', 'r') as source_file:
+    for line in source_file.readlines():
+        source_code += line
+source_file.close()
+
+p_tree = ast.parse(source_code, mode='exec')
+
+"""
+    Zone to define translation an ast to another format
+"""
+
+# Function to translate generate AST to python AST 
+def translate_to_python(node):
+    #print(node) # To debug
+    ast_node = None
+    if node[0] == 'string_asig': 
+        if node[3][0] == 'id': # Node type:string_asig=id -> ast.Assing=Name
+            ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], ast.Name(node[3][1],ast.Load()))
+        elif node[3][0] == 'r_value': # Node type:string_asig=r_value -> ast.Assing=const
+            ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], ast.Constant(node[3][1]))
+
+    elif node[0] == 'print':
+        l_ast_args = [] #List of args for ast.Call
+        for arg in node[1]: # List f_args of print node
+            if arg[1][0] == 'id': # Node type:id -> ast.Name
+                l_ast_args.append(ast.Name(arg[1][1],ast.Load()))
+            elif arg[1][0] == 'r_value': # Node type:r_value -> ast.Constant
+                l_ast_args.append(ast.Constant(arg[1][1]))
+        ast_node = ast.Expr(ast.Call(ast.Name('print', ast.Load()), l_ast_args, []))
+    
+    #print(ast.dump(ast_node, include_attributes=True, indent=4)) # To debug
+    
+    return ast_node
+
+"""
+    Zone to translate 
+"""
+
+# Translate our ast to python AST
+l_ast_nodes = []
+for node in tree:
+    l_ast_nodes.append(translate_to_python(node))
+ast_root = ast.Module(l_ast_nodes, []) # Creating python AST
+ast.fix_missing_locations(ast_root) # Fill up some needed values
+exec(compile(ast_root, filename="<ast>", mode="exec"))
+
+"""
+    Zone to dumps
+"""
+
+# Helper function to save dumps
+def dump_to_file(node, dump_file):
+    dump_file.write(str(node))
+    dump_file.write("\n\n")
+
+# Save parsing dump to a file
 with open('dumps/dump_example_struct.txt', 'w') as dump_file:
-    recursive_dump(tree, dump_file)
+    for node in tree:
+        dump_to_file(node, dump_file)
+dump_file.close()
+
+# Save translation dump to a file
+with open('dumps/dump_translation.txt','w') as dump_file:
+    dump_file.write(ast.dump(ast_root, include_attributes=True, indent=4))   
+dump_file.close()
+
+# Save parsing dump to a file
+with open('dumps/dump_example_python.txt', 'w') as dump_file:
+    dump_file.write(ast.dump(p_tree, include_attributes=True, indent=4))
+dump_file.close()
