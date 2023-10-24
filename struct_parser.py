@@ -189,6 +189,7 @@ def p_suite_value(p):
 
 def p_assig(p):
     """assig : type id LCURLY_BRACE value RCURLY_BRACE
+             | type id LCURLY_BRACE sentence RCURLY_BRACE
              | type id LCURLY_BRACE init_list RCURLY_BRACE
              | type id LCURLY_BRACE comments init_list RCURLY_BRACE
              | type id index h_level"""
@@ -257,9 +258,9 @@ def p_sentence(p):
         p[0] = p[1]
 
 def p_term_mult(p):
-    """term : term TIMES r_value
-            | term DIVIDE r_value
-            | r_value"""
+    """term : term TIMES value
+            | term DIVIDE value
+            | value"""
     if len(p) > 2:
         if p[2] == '*':
             p[0] = ('multiply', p[1], p[3])
@@ -316,8 +317,8 @@ def p_value(p):
     p[0] = p[1]
 
 def p_modification(p):
-    """modification : id ASSINGMENT r_value
-                    | id index ASSINGMENT r_value"""
+    """modification : id ASSINGMENT sentence
+                    | id index ASSINGMENT sentence"""
     if len(p) == 4:
         p[0] = ('modification', p[1], p[3])
     else:
@@ -472,7 +473,7 @@ def translate_to_python(node):
             return ast.Dict(keys,values)
         ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], recursive_ins_dict(node[3]))
     elif node[0] == 'modification': # Case: Incomming node is type modification (modification != definition)
-        if isinstance(node[2],list):
+        if isinstance(node[2],list): # Dictionary modification
             [
                 ast.Subscript(
                     ast.Subscript(
@@ -490,9 +491,8 @@ def translate_to_python(node):
                 subs.ctx = ast.Store()
                 return subs
             ast_node =  ast.Assign([iterative_subs(node[1],node[2])],create_node(node[3]))
-        else:
+        else: # Another modification
             ast_node = ast.Assign([ast.Name(node[1][1],ast.Store())], create_node(node[2]))
-        pass
     elif node[0] == 'print': # Case: Incomming node is type print
         l_ast_args = [] #List of args for ast.Call
         for arg in node[1]: # List f_args of print node
@@ -508,12 +508,13 @@ def translate_to_python(node):
 """
 
 # Translate our ast to python AST
-l_ast_nodes = []
-for node in tree:
-    l_ast_nodes.append(translate_to_python(node))
-ast_root = ast.Module(l_ast_nodes, []) # Creating python AST
-ast.fix_missing_locations(ast_root) # Fill up some needed values
-exec(compile(ast_root, filename="<ast>", mode="exec"))
+# l_ast_nodes = []
+# print(tree)
+# for node in tree:
+#     l_ast_nodes.append(translate_to_python(node))
+# ast_root = ast.Module(l_ast_nodes, []) # Creating python AST
+# ast.fix_missing_locations(ast_root) # Fill up some needed values
+# exec(compile(ast_root, filename="<ast>", mode="exec"))
 
 """
     Zone to dumps
@@ -531,9 +532,9 @@ with open('dumps/dump_example_struct.txt', 'w') as dump_file:
 dump_file.close()
 
 # Save translation dump to a file
-with open('dumps/dump_translation.txt','w') as dump_file:
-    dump_file.write(ast.dump(ast_root, include_attributes=True, indent=4))   
-dump_file.close()
+# with open('dumps/dump_translation.txt','w') as dump_file:
+#     dump_file.write(ast.dump(ast_root, include_attributes=True, indent=4))   
+# dump_file.close()
 
 # Save parsing dump to a file
 with open('dumps/dump_example_python.txt', 'w') as dump_file:
