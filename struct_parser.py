@@ -180,7 +180,8 @@ def p_dict_value(p):
         p[0] = ('d_value', p[1], p[3])
 
 def p_suite_value(p):
-    """suite_value : r_value
+    """suite_value : condition
+                   | sentence
                    | LCURLY_BRACE cplx_value"""
     if len(p) == 3:
         p[0] = p[2]
@@ -188,7 +189,7 @@ def p_suite_value(p):
         p[0] = p[1]
 
 def p_assig(p):
-    """assig : type id LCURLY_BRACE value RCURLY_BRACE
+    """assig : type id LCURLY_BRACE condition RCURLY_BRACE
              | type id LCURLY_BRACE sentence RCURLY_BRACE
              | type id LCURLY_BRACE init_list RCURLY_BRACE
              | type id LCURLY_BRACE comments init_list RCURLY_BRACE
@@ -196,7 +197,7 @@ def p_assig(p):
     if len(p) == 5: #type id index h_level
         p[0] = (p[1][1].lower()+'_vector_asig', p[1], p[2], p[3], *p[4])
     elif len(p) == 6:
-        if isinstance(p[4], tuple): #type id LCURLY_BRACE value RCURLY_BRACE
+        if isinstance(p[4], tuple): #type id LCURLY_BRACE condition|sentence RCURLY_BRACE
             p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[4])
         elif isinstance(p[4],list): #type id LCURLY_BRACE init_list RCURLY_BRACE
             p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[4])
@@ -270,9 +271,10 @@ def p_term_mult(p):
         p[0] = p[1]
 
 def p_condition(p):
-    """condition : sentence comp id
-                 | id comp sentence
-                 | id comp id"""
+    """condition : sentence comp sentence 
+                 | value comp sentence
+                 | sentence comp value
+                 | value comp value"""
     p[0] = ('condition', p[1], p[2], p[3])
 
 def p_comp(p):
@@ -301,7 +303,8 @@ def p_high_level(p):
         p[0] = p[1]
                            
 def p_lower_level(p):
-    """l_level : value
+    """l_level : sentence
+               | condition
                | LCURLY_BRACE h_level RCURLY_BRACE
                | LCURLY_BRACE comments h_level RCURLY_BRACE"""
     if len(p) == 2:
