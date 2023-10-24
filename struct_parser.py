@@ -253,7 +253,7 @@ def p_sentence(p):
         if p[2] == '+':
             p[0] = ('add', p[1], p[3])
         else:
-            p[0] = ('subtract', p[1], p[3])
+            p[0] = ('substract', p[1], p[3])
     else:
         p[0] = p[1]
 
@@ -433,8 +433,8 @@ def translate_to_python(node):
             return value
     
     # Helper function to create nodes of type ast.Constant or ast.Name:load
-    # Valid entry nodes of type r_value, key or id 
-    def create_node(n): 
+    # Valid entry nodes of type r_value, key, pos, add, substract, multiply, divide or id 
+    def new_value_node(n):
         if n[0] == 'r_value':
             value = parse_types(n[1])
             a_n = ast.Constant(value)
@@ -442,12 +442,25 @@ def translate_to_python(node):
             a_n = ast.Constant(n[1])
         elif n[0] == 'id':
             a_n = ast.Name(n[1], ast.Load())
+        else: # add, substract, multiply, divide
+            left_node = new_value_node(n[1])
+            right_node = new_value_node(n[2])
+            if n[0] == 'add':
+                op_node = ast.Add()
+            elif n[0] == 'substract':
+                op_node = ast.Sub()
+            elif n[0] == 'multiply':
+                op_node = ast.Mult()
+            else:
+                op_node = ast.Div()
+            a_n = ast.BinOp(left_node, op_node, right_node)
         return a_n
+
 
     #print(node) # To debug
     ast_node = None # Node to generate
     if node[0] == 'string_asig' or node[0] == 'int_asig' or node[0] == 'bool_asig': # Case: Incomming node is type asig
-        ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], create_node(node[3]))
+        ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], new_value_node(node[3]))
     elif node[0] == 'string_vector_asig' or node[0] == 'int_vector_asig' or node[0] == 'bool_vector_asig': # Case: Incomming node is type vector_asig
         def go_deep(level):
             list_values = [] #List of args for ast.List
@@ -456,7 +469,7 @@ def translate_to_python(node):
                     aux = go_deep(item)
                     list_values.append(ast.List(aux, ctx=ast.Load()))
                 else: # Append ast.Name or ast.Constant
-                    list_values.append(create_node(item))
+                    list_values.append(new_value_node(item))
 
             return list_values
 
@@ -466,29 +479,29 @@ def translate_to_python(node):
             keys = []
             values = []
             for dict_value in n:
-                keys.append(create_node(dict_value[1]))
+                keys.append(new_value_node(dict_value[1]))
                 if (isinstance(dict_value[2], list)):
                     values.append(recursive_ins_dict(dict_value[2]))
                 else:
-                    values.append(create_node(dict_value[2]))
+                    values.append(new_value_node(dict_value[2]))
         
             return ast.Dict(keys,values)
         ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], recursive_ins_dict(node[3]))
     elif node[0] == 'modification': # Case: Incomming node is type modification (modification != definition)
         if isinstance(node[2],list): # Dictionary or array/matrix modification
             def iterative_subs(id, list_keys):
-                subs = ast.Subscript(create_node(id), create_node(list_keys[0]), ast.Load())
+                subs = ast.Subscript(new_value_node(id), new_value_node(list_keys[0]), ast.Load())
                 for key in list_keys[1:]:
-                    subs = ast.Subscript(subs, create_node(key), ast.Load())
+                    subs = ast.Subscript(subs, new_value_node(key), ast.Load())
                 subs.ctx = ast.Store()
                 return subs
-            ast_node =  ast.Assign([iterative_subs(node[1],node[2])],create_node(node[3]))
+            ast_node =  ast.Assign([iterative_subs(node[1],node[2])],new_value_node(node[3]))
         else: # Another modification
-            ast_node = ast.Assign([ast.Name(node[1][1],ast.Store())], create_node(node[2]))
+            ast_node = ast.Assign([ast.Name(node[1][1],ast.Store())], new_value_node(node[2]))
     elif node[0] == 'print': # Case: Incomming node is type print
         l_ast_args = [] #List of args for ast.Call
         for arg in node[1]: # List f_args of print node
-            l_ast_args.append(create_node(arg[1]))
+            l_ast_args.append(new_value_node(arg[1]))
         ast_node = ast.Expr(ast.Call(ast.Name('print', ast.Load()), l_ast_args, []))
     
     #print(ast.dump(ast_node, include_attributes=True, indent=4)) # To debug
