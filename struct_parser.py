@@ -472,7 +472,27 @@ def translate_to_python(node):
             return ast.Dict(keys,values)
         ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], recursive_ins_dict(node[3]))
     elif node[0] == 'modification': # Case: Incomming node is type modification (modification != definition)
-        ast_node = ast.Assign([ast.Name(node[1][1],ast.Store())], create_node(node[2]))
+        if isinstance(node[2],list):
+            [
+                ast.Subscript(
+                    ast.Subscript(
+                        ast.Name(id='inventory',ctx=ast.Load()),
+                        ast.Constant(value='orange-with-hormone'),
+                        ast.Load()),
+                    ast.Constant(value='dude'),
+                    ast.Store())
+            ]
+            #('modification', ('id', 'inventory'), [('key', 'orange-with-hormone'), ('key', 'dude')], ('r_value', 'Yea!'))
+            def iterative_subs(id, list_keys):
+                subs = ast.Subscript(create_node(id), create_node(list_keys[0]), ast.Load())
+                for key in list_keys[1:]:
+                    subs = ast.Subscript(subs, create_node(key), ast.Load())
+                subs.ctx = ast.Store()
+                return subs
+            ast_node =  ast.Assign([iterative_subs(node[1],node[2])],create_node(node[3]))
+        else:
+            ast_node = ast.Assign([ast.Name(node[1][1],ast.Store())], create_node(node[2]))
+        pass
     elif node[0] == 'print': # Case: Incomming node is type print
         l_ast_args = [] #List of args for ast.Call
         for arg in node[1]: # List f_args of print node
