@@ -283,7 +283,18 @@ def p_comp(p):
             | LESS
             | GREATER
             | GREATER_EQUAL"""
-    p[0] = ('comp', p[1])
+    if p[1] == '==':
+        p[0] = ('equal', p[1])
+    elif p[1] == '<=':
+        p[0] = ('less_equal', p[1])
+    elif p[1] == '<':
+        p[0] = ('less', p[1])
+    elif p[1] == '>':
+        p[0] = ('greather', p[1])
+    elif p[1] == '>=':
+        p[0] = ('greather_equal', p[1])
+    
+        
 
 def p_print(p):
     """print : PRINT LPAREN init_list RPAREN"""
@@ -445,6 +456,21 @@ def translate_to_python(node):
             a_n = ast.Constant(n[1])
         elif n[0] == 'id':
             a_n = ast.Name(n[1], ast.Load())
+        elif n[0] == 'condition':
+            #('condition', ('r_value', 8), ('comp', '<'), ('r_value', 1))
+            left_node = new_value_node(n[1])
+            right_node = new_value_node(n[3])
+            if n[2][0] == 'equal':
+                op_node = ast.Eq()
+            elif n[2][0] == 'less_equal':
+                op_node = ast.LtE()
+            elif n[2][0] == 'less':
+                op_node = ast.Lt()
+            elif n[2][0] == 'greather':
+                op_node = ast.Gt()
+            elif n[2][0] == 'greather_equal':
+                op_node = ast.GtE()
+            a_n = ast.Compare(ast.Constant(5), [op_node], [ast.Constant(3)]) 
         else: # add, substract, multiply, divide
             left_node = new_value_node(n[1])
             right_node = new_value_node(n[2])
