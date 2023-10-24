@@ -328,7 +328,9 @@ def p_index(p):
     """index : LBRACKET key RBRACKET
              | index LBRACKET key RBRACKET
              | LBRACKET pos RBRACKET
-             | index LBRACKET pos RBRACKET"""
+             | index LBRACKET pos RBRACKET
+             | LBRACKET id RBRACKET
+             | index LBRACKET id RBRACKET"""
     if len(p) == 4:
         p[0] = [p[2]]
     else:
@@ -436,7 +438,7 @@ def translate_to_python(node):
         if n[0] == 'r_value':
             value = parse_types(n[1])
             a_n = ast.Constant(value)
-        elif n[0] == 'key':
+        elif n[0] == 'key' or n[0] == 'pos':
             a_n = ast.Constant(n[1])
         elif n[0] == 'id':
             a_n = ast.Name(n[1], ast.Load())
@@ -459,7 +461,7 @@ def translate_to_python(node):
             return list_values
 
         ast_node = ast.Assign([ast.Name(node[2][1], ctx=ast.Store())], ast.List(go_deep(node[4]), ctx=ast.Load()))
-    elif node[0] == 'dictionary_asig':
+    elif node[0] == 'dictionary_asig': # Case: Incomming node is type dictionary_asig
         def recursive_ins_dict(n):
             keys = []
             values = []
@@ -473,17 +475,7 @@ def translate_to_python(node):
             return ast.Dict(keys,values)
         ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], recursive_ins_dict(node[3]))
     elif node[0] == 'modification': # Case: Incomming node is type modification (modification != definition)
-        if isinstance(node[2],list): # Dictionary modification
-            [
-                ast.Subscript(
-                    ast.Subscript(
-                        ast.Name(id='inventory',ctx=ast.Load()),
-                        ast.Constant(value='orange-with-hormone'),
-                        ast.Load()),
-                    ast.Constant(value='dude'),
-                    ast.Store())
-            ]
-            #('modification', ('id', 'inventory'), [('key', 'orange-with-hormone'), ('key', 'dude')], ('r_value', 'Yea!'))
+        if isinstance(node[2],list): # Dictionary or array/matrix modification
             def iterative_subs(id, list_keys):
                 subs = ast.Subscript(create_node(id), create_node(list_keys[0]), ast.Load())
                 for key in list_keys[1:]:
@@ -508,13 +500,12 @@ def translate_to_python(node):
 """
 
 # Translate our ast to python AST
-# l_ast_nodes = []
-# print(tree)
-# for node in tree:
-#     l_ast_nodes.append(translate_to_python(node))
-# ast_root = ast.Module(l_ast_nodes, []) # Creating python AST
-# ast.fix_missing_locations(ast_root) # Fill up some needed values
-# exec(compile(ast_root, filename="<ast>", mode="exec"))
+l_ast_nodes = []
+for node in tree:
+    l_ast_nodes.append(translate_to_python(node))
+ast_root = ast.Module(l_ast_nodes, []) # Creating python AST
+ast.fix_missing_locations(ast_root) # Fill up some needed values
+exec(compile(ast_root, filename="<ast>", mode="exec"))
 
 """
     Zone to dumps
@@ -532,9 +523,9 @@ with open('dumps/dump_example_struct.txt', 'w') as dump_file:
 dump_file.close()
 
 # Save translation dump to a file
-# with open('dumps/dump_translation.txt','w') as dump_file:
-#     dump_file.write(ast.dump(ast_root, include_attributes=True, indent=4))   
-# dump_file.close()
+with open('dumps/dump_translation.txt','w') as dump_file:
+    dump_file.write(ast.dump(ast_root, include_attributes=True, indent=4))   
+dump_file.close()
 
 # Save parsing dump to a file
 with open('dumps/dump_example_python.txt', 'w') as dump_file:

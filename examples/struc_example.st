@@ -1,9 +1,11 @@
-DICTIONARY inventory {"apple": TRUE, "banana": 3, "orange-with-hormone": {"dude": 2}}
-inventory["orange-with-hormone"]["dude"] = "Yea!"
+INT a[3][2] {
+    {1,2},
+    {3,4},
+    {5,6}
+}
 
-INT a {10}
-INT b {0}
+INT b {1}
 
-b = 10*a + 20
+a[2][b] = 999
 
-PRINT(inventory)
+PRINT(a)

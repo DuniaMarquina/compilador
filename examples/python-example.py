@@ -1,4 +1,4 @@
-inventory = {"apple": 5, "banana": 3, "orange-with-hormone": {"dude": {"h":2}}}
-inventory["orange-with-hormone"]["dude"]["h"] = "Yea!"
+a = [[1,2],[3,4],[5,6]]
 
-print(inventory)
+a[2][1] = 1000
+print(a)
