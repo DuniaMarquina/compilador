@@ -459,14 +459,18 @@ def translate_to_python(node):
 
         ast_node = ast.Assign([ast.Name(node[2][1], ctx=ast.Store())], ast.List(go_deep(node[4]), ctx=ast.Load()))
     elif node[0] == 'dictionary_asig':
-        #('dictionary_asig', ('type', 'DICTIONARY'), ('id', 'inventory'),
-        #('d_value', ('key', 'apple'), ('r_value', 5))
-        keys = []
-        values = []
-        for dict_value in node[3]:
-            keys.append(create_node(dict_value[1]))
-            values.append(create_node(dict_value[2]))
-        ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], ast.Dict(keys,values))
+        def recursive_ins_dict(n):
+            keys = []
+            values = []
+            for dict_value in n:
+                keys.append(create_node(dict_value[1]))
+                if (isinstance(dict_value[2], list)):
+                    values.append(recursive_ins_dict(dict_value[2]))
+                else:
+                    values.append(create_node(dict_value[2]))
+        
+            return ast.Dict(keys,values)
+        ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], recursive_ins_dict(node[3]))
     elif node[0] == 'modification': # Case: Incomming node is type modification (modification != definition)
         ast_node = ast.Assign([ast.Name(node[1][1],ast.Store())], create_node(node[2]))
     elif node[0] == 'print': # Case: Incomming node is type print
