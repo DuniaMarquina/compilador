@@ -485,7 +485,6 @@ def translate_to_python(node):
             a_n = ast.BinOp(left_node, op_node, right_node)
         return a_n
 
-
     #print(node) # To debug
     ast_node = None # Node to generate
     if node[0] == 'string_asig' or node[0] == 'int_asig' or node[0] == 'bool_asig': # Case: Incomming node is type asig
@@ -532,9 +531,17 @@ def translate_to_python(node):
         for arg in node[1]: # List f_args of print node
             l_ast_args.append(new_value_node(arg[1]))
         ast_node = ast.Expr(ast.Call(ast.Name('print', ast.Load()), l_ast_args, []))
-    
+    elif node[0] == 'for': # Case: Incomming node is a for
+        expr_body = [] # Variable to store all expressions in the body of for loop
+        for expr in node[3]: # Iterate over expressions inside of for body 
+            expr_body.append(translate_to_python(expr))
+
+        target = new_value_node(node[1])
+        target.ctx = ast.Store()
+        ast_node = ast.For(target,new_value_node(node[2]),expr_body,[])
+
     #print(ast.dump(ast_node, include_attributes=True, indent=4)) # To debug
-    
+        
     return ast_node
 
 """

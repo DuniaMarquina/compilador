@@ -1,3 +1,3 @@
-a = 15 + 5 * 2
-
-print(a)
+a = list(1,2,3)
+for i in [1,2,3]:
+    print(a)
