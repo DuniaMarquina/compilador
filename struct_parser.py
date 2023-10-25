@@ -338,6 +338,14 @@ def p_modification(p):
     else:
         p[0] = ('modification', p[1], p[2], p[4])
 
+def p_load_cplx(p):
+    """load_cplx : id empty
+                 | id index"""
+    if isinstance(p[2], list): #Matrix or Dicctionary
+        p[0] = ('load_cplx', p[1], p[2])
+    else: # Simple variable
+        p[0] = p[1]
+
 def p_index(p):
     """index : LBRACKET key RBRACKET
              | index LBRACKET key RBRACKET
@@ -361,7 +369,7 @@ def p_pos(p):
 
 def p_arg(p):
     """arg : r_value
-           | id"""
+           | load_cplx"""
     p[0] = ('f_arg', p[1])
 
 def p_id(p):
@@ -471,6 +479,8 @@ def translate_to_python(node):
             elif n[2][0] == 'greather_equal':
                 op_node = ast.GtE()
             a_n = ast.Compare(ast.Constant(5), [op_node], [ast.Constant(3)]) 
+        elif n[0] == 'load_cplx':
+            a_n = iterative_subs(n[1],n[2])
         else: # add, substract, multiply, divide
             left_node = new_value_node(n[1])
             right_node = new_value_node(n[2])
@@ -485,7 +495,14 @@ def translate_to_python(node):
             a_n = ast.BinOp(left_node, op_node, right_node)
         return a_n
 
-    #print(node) # To debug
+    #Helper function to load matrix or dictionary values
+    # Need variable name and a list of keys/index
+    def iterative_subs(id, list_keys):
+        subs = ast.Subscript(new_value_node(id), new_value_node(list_keys[0]), ast.Load())
+        for key in list_keys[1:]:
+            subs = ast.Subscript(subs, new_value_node(key), ast.Load())
+        return subs
+
     ast_node = None # Node to generate
     if node[0] == 'string_asig' or node[0] == 'int_asig' or node[0] == 'bool_asig': # Case: Incomming node is type asig
         ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], new_value_node(node[3]))
@@ -517,13 +534,10 @@ def translate_to_python(node):
         ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], recursive_ins_dict(node[3]))
     elif node[0] == 'modification': # Case: Incomming node is type modification (modification != definition)
         if isinstance(node[2],list): # Dictionary or array/matrix modification
-            def iterative_subs(id, list_keys):
-                subs = ast.Subscript(new_value_node(id), new_value_node(list_keys[0]), ast.Load())
-                for key in list_keys[1:]:
-                    subs = ast.Subscript(subs, new_value_node(key), ast.Load())
-                subs.ctx = ast.Store()
-                return subs
-            ast_node =  ast.Assign([iterative_subs(node[1],node[2])],new_value_node(node[3]))
+            subs_node = iterative_subs(node[1],node[2])
+            subs_node.ctx = ast.Store()
+
+            ast_node =  ast.Assign([subs_node],new_value_node(node[3]))
         else: # Another modification
             ast_node = ast.Assign([ast.Name(node[1][1],ast.Store())], new_value_node(node[2]))
     elif node[0] == 'print': # Case: Incomming node is type print
@@ -539,8 +553,6 @@ def translate_to_python(node):
         target = new_value_node(node[1])
         target.ctx = ast.Store()
         ast_node = ast.For(target,new_value_node(node[2]),expr_body,[])
-
-    #print(ast.dump(ast_node, include_attributes=True, indent=4)) # To debug
         
     return ast_node
 
