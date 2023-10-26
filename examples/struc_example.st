@@ -3,6 +3,7 @@ STRING a {"Hola mundo!"}
 
 // Data colections
 DICTIONARY inventory {"apple": 5, "banana": 3, "orange": 2}
+PRINT(inventory)
 DICTIONARY complex_dict { // Nested DICTIONARY
     "fruits": {
         "apple": {
@@ -42,7 +43,7 @@ FOR item IN complex_dict
     // Ha!, lets due it
     FOR dataCl IN client {
         BOOL stillWaiting {FALSE} // Let's break this parser
-        PRINT(dataCl, "")
+        PRINT(dataCl,client[dataCl], "")
     }
 }
 
@@ -50,16 +51,14 @@ PRINT(a, "Hola mundo!")
 
 a = "Hola universo!" // Break?
 inventory["apple"] = 80 // Doble break?
-complex_dict["apple"]["colour"] = "Green"
+complex_dict["fruits"]["apple"]["seed"] = FALSE
+PRINT(a)
+PRINT(inventory)
+PRINT(complex_dict)
 
-INT x {10} //Comment
 
-INT array[4] {1,2,3,4}
-//Comment
-INT arr2[2][2][2] { // Comment
-    { {3, 3}, {x, 4} }, // Comment
-    //Comment
-    { {5, 5}, {6, 6} }
-}//Coment
+INT array[3] {1,2,3}
 
-arr[2][3][1] = 4
+PRINT(array)
+
+array[2] = 4
