@@ -7,6 +7,10 @@ Struct es un lenguaje orientado por objetos y fuertemente tipado, cuyo principal
 
 Además, con el propósito en mente que el programador solo tenga que usar llamados a funciones, propias de cada estructura para la manipulación de los datos, es decir, cada estructura debe soportar: Ingreso de nuevos datos, modificación, consultas, eliminación de datos.
 
+# Requerimientos
+
+Python 3.8 o superior, adicionalmente instale las dependencias marcadas en el archivo requirements.txt, ver Paso 4 de la siguiente sección.
+
 # ¿Cómo usar?
 
 1. Descargue el repositorio:
