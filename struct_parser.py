@@ -44,9 +44,10 @@ simple_tokens = [
    'GREATER_EQUAL',
    'COMMA',
    'COLON',
-   'COMMENT',
-   'ID',
-   'R_STRING'
+   #'QUOTE',
+    'COMMENT',
+    'ID',
+    'R_STRING'
 ]
 
 reserved = {
@@ -299,20 +300,15 @@ def p_print(p):
     """print : PRINT LPAREN init_list RPAREN"""
     p[0] = ('print', p[3])
 
-def p_size(p):
-    """ size : NUMBER"""
-    p[0] = ('size',p[1])
-
-def p_def_vector(p): 
-    """ def_vector : type id LBRACKET size RBRACKET ASSINGMENT LCURLY_BRACE element RCURLY_BRACE"""
-    p[0] = ('def_vector', p[1], p[2], p[4], p[8])
-
-
-def p_element(p):
-    """element : element COMMA r_value
-               | r_value"""
-    if len(p) == 2 :
-        p[0] = [p[1]]       
+def p_high_level(p):
+    """h_level : h_level COMMA comments l_level
+               | h_level COMMA l_level
+               | l_level """
+    if len(p) == 2:
+        p[0] = [p[1]]
+    elif len(p) == 4:
+        p[1].append(p[3])
+        p[0] = p[1]
     else:
         p[1].append(p[4])
         p[0] = p[1]
