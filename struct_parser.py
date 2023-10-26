@@ -1,4 +1,4 @@
-import sys, logging
+import ast, sys, logging
 import ply.yacc as yacc
 import ply.lex as lex
 
@@ -47,8 +47,7 @@ simple_tokens = [
    #'QUOTE',
     'COMMENT',
     'ID',
-    'R_STRING',
-    #'NEW_LINE'
+    'R_STRING'
 ]
 
 reserved = {
@@ -118,12 +117,6 @@ def t_ID(t):
         t.type = reserved.get(t.value,'ID') # Check for reserved words
     return t
 
-# Define a rule so we can track line numbers
-# def t_NEW_LINE(t):
-#     r'\n'
-#     t.lexer.lineno += len(t.value) # skip to next line
-#     return t
-
 # A string containing ignored characters (spaces and tabs)
 t_ignore  = ' \t\n'
 
@@ -159,9 +152,10 @@ def p_expr(p):
             | print
             | modification comments
             | modification
-            | def_vector
-            | d_block"""
-    p[0] = [p[1]]
+            | d_block
+            | comments"""
+    if p[1]:
+        p[0] = [p[1]]
 
 def p_init_list(p):
     """init_list : init_list dict_value
@@ -194,13 +188,19 @@ def p_suite_value(p):
         p[0] = p[1]
 
 def p_assig(p):
-    """assig : type id LCURLY_BRACE r_value RCURLY_BRACE
+    """assig : type id LCURLY_BRACE value RCURLY_BRACE
              | type id LCURLY_BRACE init_list RCURLY_BRACE
-             | type id LCURLY_BRACE comments init_list RCURLY_BRACE"""
-    if len(p) == 6:
-        p[0] = ('asig', p[1], p[2], p[4])
-    else:
-        p[0] = ('asig', p[1], p[2], p[5])
+             | type id LCURLY_BRACE comments init_list RCURLY_BRACE
+             | type id index h_level"""
+    if len(p) == 5: #type id index h_level
+        p[0] = (p[1][1].lower()+'_vector_asig', p[1], p[2], p[3], *p[4])
+    elif len(p) == 6:
+        if isinstance(p[4], tuple): #type id LCURLY_BRACE value RCURLY_BRACE
+            p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[4])
+        elif isinstance(p[4],list): #type id LCURLY_BRACE init_list RCURLY_BRACE
+            p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[4])
+    elif len(p) == 7: #type id LCURLY_BRACE comments init_list RCURLY_BRACE
+        p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[5])
 
 def p_for(p):
     """for  : FOR id IN id LCURLY_BRACE code RCURLY_BRACE"""
@@ -282,27 +282,38 @@ def p_comp(p):
             | GREATER_EQUAL"""
     p[0] = ('comp', p[1])
 
-
 def p_print(p):
     """print : PRINT LPAREN init_list RPAREN"""
-    p[0] = ('print:', p[3])
+    p[0] = ('print', p[3])
 
-def p_size(p):
-    """ size : NUMBER"""
-    p[0] = ('size',p[1])
-
-def p_def_vector(p): 
-    """ def_vector : type id LBRACKET size RBRACKET ASSINGMENT LCURLY_BRACE element RCURLY_BRACE"""
-    p[0] = ('def_vector', p[1], p[2], p[4], p[8])
-
-def p_element(p):
-    """element : element COMMA r_value
-               | r_value"""
-    if len(p) == 2 :
-        p[0] = [p[1]]       
+def p_high_level(p):
+    """h_level : h_level COMMA comments l_level
+               | h_level COMMA l_level
+               | l_level """
+    if len(p) == 2:
+        p[0] = [p[1]]
+    elif len(p) == 4:
+        p[1].append(p[3])
+        p[0] = p[1]
     else:
-        p[0] = p[1] + [p[3]]
-     
+        p[1].append(p[4])
+        p[0] = p[1]
+                           
+def p_lower_level(p):
+    """l_level : value
+               | LCURLY_BRACE h_level RCURLY_BRACE
+               | LCURLY_BRACE comments h_level RCURLY_BRACE"""
+    if len(p) == 2:
+        p[0] = p[1]
+    elif len(p) == 4:
+        p[0] = p[2]
+    else:
+        p[0] = p[3]
+
+def p_value(p):
+    """value : r_value
+             | id"""
+    p[0] = p[1]
 
 def p_modification(p):
     """modification : id ASSINGMENT r_value
@@ -315,7 +326,8 @@ def p_modification(p):
 def p_index(p):
     """index : LBRACKET key RBRACKET
              | index LBRACKET key RBRACKET
-             | LBRACKET pos RBRACKET"""
+             | LBRACKET pos RBRACKET
+             | index LBRACKET pos RBRACKET"""
     if len(p) == 4:
         p[0] = [p[2]]
     else:
@@ -351,7 +363,6 @@ def p_r_value(p):
                | FALSE
                | TRUE
                | R_STRING
-               | sentence
                | NUMBER comments
                | FALSE comments
                | TRUE comments
@@ -371,6 +382,10 @@ def p_commets(p):
 def p_error(p):
     SyntaxError(p)
 
+
+"""
+    Zone of parsing 
+"""
 # Build the lexer
 lexer = lex.lex()
 # Build the parser
@@ -385,16 +400,142 @@ with open(source_file, 'r') as source_file:
 
 source_file.close()
 
-def recursive_dump(root, dump_file):
-    for exp in root:
-        dump_file.write(str(exp))
-        dump_file.write("\n\n")
-
-    # Use with ast python module
-    #for node in ast.iter_child_nodes(root):
-        #dump_file.write(ast.dump(node))
-        #dump_file.write("\n\n")
-
 tree = parser.parse(source_code, lexer=lexer, debug=logging.getLogger())
+
+# Generate a reference python AST to compare with us AST
+source_code = '' 
+with open('examples/python-example.py', 'r') as source_file:
+    for line in source_file.readlines():
+        source_code += line
+source_file.close()
+
+p_tree = ast.parse(source_code, mode='exec')
+
+"""
+    Zone to define translation an ast to another format
+"""
+
+# Function to translate generate AST to python AST 
+def translate_to_python(node):
+    # Helper to pass struct right values to python right values
+    def parse_types(value):
+        if isinstance(value, str):
+            if value == 'TRUE':
+                return True
+            elif value == 'FALSE':
+                return False
+            else:
+                return value
+        else:
+            return value
+    
+    # Helper function to create nodes of type ast.Constant or ast.Name:load
+    # Valid entry nodes of type r_value, key or id 
+    def create_node(n): 
+        if n[0] == 'r_value':
+            value = parse_types(n[1])
+            a_n = ast.Constant(value)
+        elif n[0] == 'key':
+            a_n = ast.Constant(n[1])
+        elif n[0] == 'id':
+            a_n = ast.Name(n[1], ast.Load())
+        return a_n
+
+    #print(node) # To debug
+    ast_node = None # Node to generate
+    if node[0] == 'string_asig' or node[0] == 'int_asig' or node[0] == 'bool_asig': # Case: Incomming node is type asig
+        ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], create_node(node[3]))
+    elif node[0] == 'string_vector_asig' or node[0] == 'int_vector_asig' or node[0] == 'bool_vector_asig': # Case: Incomming node is type vector_asig
+        def go_deep(level):
+            list_values = [] #List of args for ast.List
+            for item in level:
+                if isinstance(item, list): # Append list
+                    aux = go_deep(item)
+                    list_values.append(ast.List(aux, ctx=ast.Load()))
+                else: # Append ast.Name or ast.Constant
+                    list_values.append(create_node(item))
+
+            return list_values
+
+        ast_node = ast.Assign([ast.Name(node[2][1], ctx=ast.Store())], ast.List(go_deep(node[4]), ctx=ast.Load()))
+    elif node[0] == 'dictionary_asig':
+        def recursive_ins_dict(n):
+            keys = []
+            values = []
+            for dict_value in n:
+                keys.append(create_node(dict_value[1]))
+                if (isinstance(dict_value[2], list)):
+                    values.append(recursive_ins_dict(dict_value[2]))
+                else:
+                    values.append(create_node(dict_value[2]))
+        
+            return ast.Dict(keys,values)
+        ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], recursive_ins_dict(node[3]))
+    elif node[0] == 'modification': # Case: Incomming node is type modification (modification != definition)
+        if isinstance(node[2],list):
+            [
+                ast.Subscript(
+                    ast.Subscript(
+                        ast.Name(id='inventory',ctx=ast.Load()),
+                        ast.Constant(value='orange-with-hormone'),
+                        ast.Load()),
+                    ast.Constant(value='dude'),
+                    ast.Store())
+            ]
+            #('modification', ('id', 'inventory'), [('key', 'orange-with-hormone'), ('key', 'dude')], ('r_value', 'Yea!'))
+            def iterative_subs(id, list_keys):
+                subs = ast.Subscript(create_node(id), create_node(list_keys[0]), ast.Load())
+                for key in list_keys[1:]:
+                    subs = ast.Subscript(subs, create_node(key), ast.Load())
+                subs.ctx = ast.Store()
+                return subs
+            ast_node =  ast.Assign([iterative_subs(node[1],node[2])],create_node(node[3]))
+        else:
+            ast_node = ast.Assign([ast.Name(node[1][1],ast.Store())], create_node(node[2]))
+        pass
+    elif node[0] == 'print': # Case: Incomming node is type print
+        l_ast_args = [] #List of args for ast.Call
+        for arg in node[1]: # List f_args of print node
+            l_ast_args.append(create_node(arg[1]))
+        ast_node = ast.Expr(ast.Call(ast.Name('print', ast.Load()), l_ast_args, []))
+    
+    #print(ast.dump(ast_node, include_attributes=True, indent=4)) # To debug
+    
+    return ast_node
+
+"""
+    Zone to translate 
+"""
+
+# Translate our ast to python AST
+l_ast_nodes = []
+for node in tree:
+    l_ast_nodes.append(translate_to_python(node))
+ast_root = ast.Module(l_ast_nodes, []) # Creating python AST
+ast.fix_missing_locations(ast_root) # Fill up some needed values
+exec(compile(ast_root, filename="<ast>", mode="exec"))
+
+"""
+    Zone to dumps
+"""
+
+# Helper function to save dumps
+def dump_to_file(node, dump_file):
+    dump_file.write(str(node))
+    dump_file.write("\n\n")
+
+# Save parsing dump to a file
 with open('dumps/dump_example_struct.txt', 'w') as dump_file:
-    recursive_dump(tree, dump_file)
+    for node in tree:
+        dump_to_file(node, dump_file)
+dump_file.close()
+
+# Save translation dump to a file
+with open('dumps/dump_translation.txt','w') as dump_file:
+    dump_file.write(ast.dump(ast_root, include_attributes=True, indent=4))   
+dump_file.close()
+
+# Save parsing dump to a file
+with open('dumps/dump_example_python.txt', 'w') as dump_file:
+    dump_file.write(ast.dump(p_tree, include_attributes=True, indent=4))
+dump_file.close()
