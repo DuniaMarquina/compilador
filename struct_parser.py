@@ -37,22 +37,16 @@ simple_tokens = [
    'LCURLY_BRACE',
    'RCURLY_BRACE',
    'EQUAL',
-   'EQUAL',
    'ASSINGMENT',
-   'LESS_EQUAL',
-   'LESS',
-   'GREATER',
-   'GREATER_EQUAL',
    'LESS_EQUAL',
    'LESS',
    'GREATER',
    'GREATER_EQUAL',
    'COMMA',
    'COLON',
-   #'QUOTE',
-    'COMMENT',
-    'ID',
-    'R_STRING'
+   'COMMENT',
+   'ID',
+   'R_STRING'
 ]
 
 reserved = {
