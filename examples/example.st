@@ -1,55 +1,43 @@
-DICTIONARY inventory {"apple": 5, "banana": 3, "orange": 2}
+DICTIONARY inventory {"apple": 5, "banana": 3, "orange": 0}
 
+INT a[2][2] {{1,inventory["apple"]}, {2,inventory["banana"] + 5}}
 
-FOR i in inventory
+BOOL x {a[0][1] * 2 < inventory["banana"] + 5}
+
+PRINT(x,a, a[0][0], inventory["banana"] + 5, a[0][0] < inventory["banana"] + 5)
+
+FOR i IN inventory
 {
-   IF i.key == "apple"
+   PRINT(i, inventory[i])
+   IF (inventory[i] == 0)
    {
-      IF i.value > 3
-      {
-         i["apple"] = i["apple"] -1
-      }
+      PRINT("Producto agotado:", i)
    }
-   elif i.key == "banana"
+   ELIF (inventory[i] < 4)
    {
-      IF i.value > 3
-      {
-         i["banana"] = i["banana"]-1
-      }
-   }
-   ELIF i.key == "orange"
-   {
-      if i.value > 3
-      {
-         i["orange"] = i["orange"]-1
-      }
+      PRINT("Producto por agotarse:", i)
    }
    ELSE
    {
-      PRINT(i.key," not found in inventory")
+      PRINT("Producto abundante:", i)
    }
 
-}
-
-for i IN inventory
-{
-    PRINT(i.key, i.value)
 }
 
 //Nuevas entradas
 
-INT new_apple {5}
-int new_banana {3}
-INT new_orange {2}
+INT new_apple {15}
+INT new_banana {13 + new_apple + inventory["banana"]}
+INT new_orange {12}
 
 //Actualizacion del inventario
 
-inventory[apple] = new_apple
+inventory["apple"] = new_apple
 inventory["banana"] = new_banana
 inventory["orange"] = new_orange
 
-For i IN inventori
+FOR i IN inventory
 {
-    PRINT(i.key, i.value)
-}
+    PRINT(i, inventory[i])
+   }
 

@@ -159,11 +159,15 @@ def p_expr(p):
 
 def p_init_list(p):
     """init_list : init_list dict_value
-                 | init_list arg
+                 | init_list value
+                 | init_list sentence
+                 | init_list condition
                  | init_list COMMA comments
                  | init_list COMMA
                  | dict_value
-                 | arg"""
+                 | value
+                 | sentence
+                 | condition"""
     if len(p) == 2:
         p[0] = [p[1]]
     elif p[1] and isinstance(p[2],tuple):
@@ -174,10 +178,7 @@ def p_init_list(p):
 
 def p_dict_value(p):
     """dict_value : key COLON suite_value"""
-    if len(p) == 5:
-        p[0] = ('d_value', p[2], p[4])
-    else:
-        p[0] = ('d_value', p[1], p[3])
+    p[0] = ('d_value', p[1], p[3])
 
 def p_suite_value(p):
     """suite_value : condition
@@ -191,6 +192,7 @@ def p_suite_value(p):
 def p_assig(p):
     """assig : type id LCURLY_BRACE condition RCURLY_BRACE
              | type id LCURLY_BRACE sentence RCURLY_BRACE
+             | type id LCURLY_BRACE value RCURLY_BRACE
              | type id LCURLY_BRACE init_list RCURLY_BRACE
              | type id LCURLY_BRACE comments init_list RCURLY_BRACE
              | type id index h_level"""
@@ -271,10 +273,7 @@ def p_term_mult(p):
         p[0] = p[1]
 
 def p_condition(p):
-    """condition : sentence comp sentence 
-                 | value comp sentence
-                 | sentence comp value
-                 | value comp value"""
+    """condition : sentence comp sentence"""
     p[0] = ('condition', p[1], p[2], p[3])
 
 def p_comp(p):
@@ -294,8 +293,6 @@ def p_comp(p):
     elif p[1] == '>=':
         p[0] = ('greather_equal', p[1])
     
-        
-
 def p_print(p):
     """print : PRINT LPAREN init_list RPAREN"""
     p[0] = ('print', p[3])
@@ -327,7 +324,7 @@ def p_lower_level(p):
 
 def p_value(p):
     """value : r_value
-             | id"""
+             | load_cplx"""
     p[0] = p[1]
 
 def p_modification(p):
@@ -366,11 +363,6 @@ def p_key(p):
 def p_pos(p):
     """ pos : NUMBER"""
     p[0] = ('pos', p[1])
-
-def p_arg(p):
-    """arg : r_value
-           | load_cplx"""
-    p[0] = ('f_arg', p[1])
 
 def p_id(p):
     """id : ID"""
@@ -478,7 +470,7 @@ def translate_to_python(node):
                 op_node = ast.Gt()
             elif n[2][0] == 'greather_equal':
                 op_node = ast.GtE()
-            a_n = ast.Compare(ast.Constant(5), [op_node], [ast.Constant(3)]) 
+            a_n = ast.Compare(left_node, [op_node], [right_node]) 
         elif n[0] == 'load_cplx':
             a_n = iterative_subs(n[1],n[2])
         else: # add, substract, multiply, divide
@@ -495,14 +487,21 @@ def translate_to_python(node):
             a_n = ast.BinOp(left_node, op_node, right_node)
         return a_n
 
-    #Helper function to load matrix or dictionary values
+    # Helper function to load matrix or dictionary values
     # Need variable name and a list of keys/index
     def iterative_subs(id, list_keys):
         subs = ast.Subscript(new_value_node(id), new_value_node(list_keys[0]), ast.Load())
         for key in list_keys[1:]:
             subs = ast.Subscript(subs, new_value_node(key), ast.Load())
         return subs
-
+    
+    # Helper function to create nodes given a list of nodes
+    def process_body(list_expr):
+        expr_body = [] # Variable to store all sentence in the body expression
+        for expr in list_expr: # Iterate over setences inside of for body 
+            expr_body.append(translate_to_python(expr))
+        return  expr_body
+    
     ast_node = None # Node to generate
     if node[0] == 'string_asig' or node[0] == 'int_asig' or node[0] == 'bool_asig': # Case: Incomming node is type asig
         ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], new_value_node(node[3]))
@@ -543,17 +542,40 @@ def translate_to_python(node):
     elif node[0] == 'print': # Case: Incomming node is type print
         l_ast_args = [] #List of args for ast.Call
         for arg in node[1]: # List f_args of print node
-            l_ast_args.append(new_value_node(arg[1]))
+            l_ast_args.append(new_value_node(arg))
         ast_node = ast.Expr(ast.Call(ast.Name('print', ast.Load()), l_ast_args, []))
     elif node[0] == 'for': # Case: Incomming node is a for
-        expr_body = [] # Variable to store all expressions in the body of for loop
-        for expr in node[3]: # Iterate over expressions inside of for body 
-            expr_body.append(translate_to_python(expr))
-
         target = new_value_node(node[1])
         target.ctx = ast.Store()
-        ast_node = ast.For(target,new_value_node(node[2]),expr_body,[])
+        ast_node = ast.For(target,new_value_node(node[2]), process_body(node[3]),[])
         
+    elif node[0] == 'd_block':
+        # ('if', ('condition'), []),
+        # ('elif', ('condition'), []),
+        # ('else', [])
+        # If(
+        #     test=
+        #     body=[],
+        #     orelse=[
+        #         If(
+        #             test,
+        #             body=[],
+        #             orelse=[
+        #                 Assign()
+        #         )
+        # )
+        # translate_to_python(node[1])
+        root_if = ast.If(new_value_node(node[1][0][1]), process_body(node[1][0][2]), orelse=[])
+        current_if = root_if # Attribute orelse must be setting if incomming elif's or an else 
+        for if_tuple in node[1][1:]: # Iterate over elif's / else
+            current_if.orelse = translate_to_python(if_tuple) # Setting orelse attribute of previos if/elif
+            current_if = current_if.orelse[0] # Update pointer to new orelse attribute
+        ast_node = root_if
+    elif node[0] == 'elif':
+        ast_node = [ast.If(new_value_node(node[1]), process_body(node[2]), [])]
+    elif node[0] == 'else':
+        ast_node = process_body(node[1])
+
     return ast_node
 
 """
