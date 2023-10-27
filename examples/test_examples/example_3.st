@@ -9,7 +9,7 @@ INT RESULT {0}
 
 res1 = a + b
 res2 = a - c
-res3 = res1 - res2
+res3 = res1 * res2
 RESULT = res3 / b
 
 result = a + b * a - c / b
