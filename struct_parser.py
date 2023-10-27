@@ -554,6 +554,15 @@ def translate_to_python(node):
         target.ctx = ast.Store()
         ast_node = ast.For(target,new_value_node(node[2]),expr_body,[])
         
+    elif node[0] == 'd_block':
+        ast_node = translate_to_python(node[1])
+    elif node[0] == 'if':
+        ast_node = ast.If(test=new_value_node(node[1]), body=[translate_to_python(node[2])], orelse=[translate_to_python(node[3])])
+    elif node[0] == 'elif':
+        ast_node = ast.If(test=new_value_node(node[1]), body=[translate_to_python(node[2])], orelse=[translate_to_python(node[3])])
+    elif node[0] == 'else':
+        ast_node = ast.If(test=None, body=[], orelse=[translate_to_python(node[1])])
+
     return ast_node
 
 """
