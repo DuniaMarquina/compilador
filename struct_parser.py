@@ -124,6 +124,7 @@ t_ignore  = ' \t\n'
 def t_error(t):
     print(f"Error: Ilegal character '{t.value[0]}' at line {t.lineno}, position {t.lexpos}")
     t.lexer.skip(len(t.value))
+    exit()
 
 """
     Definition zone of Paser
