@@ -426,15 +426,6 @@ source_file.close()
 
 tree = parser.parse(source_code, lexer=lexer, debug=logging.getLogger())
 
-# Generate a reference python AST to compare with us AST
-source_code = '' 
-with open('examples/python-example.py', 'r') as source_file:
-    for line in source_file.readlines():
-        source_code += line
-source_file.close()
-
-p_tree = ast.parse(source_code, mode='exec')
-
 """
     Zone to define translation an ast to another format
 """
@@ -599,9 +590,4 @@ dump_file.close()
 # Save translation dump to a file
 with open('dumps/dump_translation.txt','w') as dump_file:
     dump_file.write(ast.dump(ast_root, include_attributes=True, indent=4))   
-dump_file.close()
-
-# Save parsing dump to a file
-with open('dumps/dump_example_python.txt', 'w') as dump_file:
-    dump_file.write(ast.dump(p_tree, include_attributes=True, indent=4))
 dump_file.close()

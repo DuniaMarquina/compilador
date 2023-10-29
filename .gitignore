@@ -164,3 +164,4 @@ dumps/
 #.idea/
 examples/struc_example copy.st
 .gitignore
+gen_ast_python.py
