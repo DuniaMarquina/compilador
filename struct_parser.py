@@ -193,16 +193,17 @@ def p_assig(p):
     """assig : type id LCURLY_BRACE condition RCURLY_BRACE
              | type id LCURLY_BRACE sentence RCURLY_BRACE
              | type id LCURLY_BRACE value RCURLY_BRACE
+             | type id LCURLY_BRACE error RCURLY_BRACE
              | type id LCURLY_BRACE init_list RCURLY_BRACE
              | type id LCURLY_BRACE comments init_list RCURLY_BRACE
              | type id index h_level"""
     if len(p) == 5: #type id index h_level
         p[0] = (p[1][1].lower()+'_vector_asig', p[1], p[2], p[3], *p[4])
-    elif len(p) == 6:
-        if isinstance(p[4], tuple): #type id LCURLY_BRACE condition|sentence RCURLY_BRACE
-            p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[4])
-        elif isinstance(p[4],list): #type id LCURLY_BRACE init_list RCURLY_BRACE
-            p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[4])
+    elif len(p) == 6: #type id LCURLY_BRACE condition|sentence|value RCURLY_BRACE
+        p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[4])
+        if isinstance(p[4],lex.LexToken): # Error production
+            print('No empty init values')
+            exit()
     elif len(p) == 7: #type id LCURLY_BRACE comments init_list RCURLY_BRACE
         p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[5])
 
@@ -404,8 +405,7 @@ def p_commets(p):
                 | COMMENT"""
 
 def p_error(p):
-    SyntaxError(p)
-
+    print(f'Syntax error at {p.value!r} in line {p.lineno}, position {p.lexpos}, Message: ')
 
 """
     Zone of parsing 
