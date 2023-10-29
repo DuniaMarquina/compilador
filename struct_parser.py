@@ -198,13 +198,19 @@ def p_assig(p):
              | type id LCURLY_BRACE init_list RCURLY_BRACE
              | type id LCURLY_BRACE comments init_list RCURLY_BRACE
              | type id index h_level"""
+    if symbol_table.get(p[2][1]): # Variable redefinition
+        print(f'Redefinition of variable {p[2][1]}')
+        exit()
+    else:
+        symbol_table[p[2][1]] = p[1][1] # Save id
+
     if len(p) == 5: #type id index h_level
         p[0] = (p[1][1].lower()+'_vector_asig', p[1], p[2], p[3], *p[4])
     elif len(p) == 6: #type id LCURLY_BRACE condition|sentence|value RCURLY_BRACE
-        p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[4])
         if isinstance(p[4],lex.LexToken): # Error production
             print('No empty init values')
             exit()
+        p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[4])
     elif len(p) == 7: #type id LCURLY_BRACE comments init_list RCURLY_BRACE
         p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[5])
 
