@@ -1,6 +1,9 @@
 STRING nombre_cliente {"Juan Perez"}
 INT edad_cliente {50}
-INT miembro_programa {1}  // 1 si pertenece 0 no pertenece (falla de condicional con bool)
+
+//INT miembro_programa {1}  // 1 si pertenece 0 no pertenece (falla de condicional con bool)
+BOOL miembro_programa {TRUE}
+
 INT porcentaje {100}
 INT D1 {85}
 INT D2 {90}
@@ -13,7 +16,7 @@ INT costo_final {0}
 IF (edad_cliente >= 60) {
     PRINT("aplica descuento por edad ")
     descuento = D1 / porcentaje
-} ELIF (miembro_programa >= 1) {
+} ELIF (miembro_programa) {
     PRINT("aplica descuento por membresia ")
     descuento = D2 / porcentaje
 }
