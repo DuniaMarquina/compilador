@@ -229,16 +229,23 @@ def p_empty(p): # Auxiliar producction to handle alone if declaration
     pass
 
 def p_if(p):
-    """if : IF LPAREN condition RPAREN LCURLY_BRACE code RCURLY_BRACE"""
-    p[0] = ('if', p[3], p[6])
+    """if : IF LPAREN condition RPAREN LCURLY_BRACE code RCURLY_BRACE
+          | IF LPAREN id empty RPAREN LCURLY_BRACE code RCURLY_BRACE"""
+    if(len(p) == 8): #condition
+        p[0] = ('if', p[3], p[6])
+    else: #id empty
+        p[0] = ('if', p[3], p[7])
 
 def p_elif(p):
     """
     elif : ELIF LPAREN condition RPAREN LCURLY_BRACE code RCURLY_BRACE
+         | ELIF LPAREN id empty RPAREN LCURLY_BRACE code RCURLY_BRACE
          | elif elif
     """
     if len(p) == 8: #ELIF condition LCURLY_BRACE code RCURLY_BRACE
         p[0] = [('elif', p[3], p[6])]
+    elif len(p) == 9:
+        p[0] = [('elif', p[3], p[7])]
     else: #elif elif
         p[1].extend(p[2])
         p[0] = p[1]
@@ -457,7 +464,6 @@ def translate_to_python(node):
         elif n[0] == 'id':
             a_n = ast.Name(n[1], ast.Load())
         elif n[0] == 'condition':
-            #('condition', ('r_value', 8), ('comp', '<'), ('r_value', 1))
             left_node = new_value_node(n[1])
             right_node = new_value_node(n[3])
             if n[2][0] == 'equal':
@@ -550,21 +556,6 @@ def translate_to_python(node):
         ast_node = ast.For(target,new_value_node(node[2]), process_body(node[3]),[])
         
     elif node[0] == 'd_block':
-        # ('if', ('condition'), []),
-        # ('elif', ('condition'), []),
-        # ('else', [])
-        # If(
-        #     test=
-        #     body=[],
-        #     orelse=[
-        #         If(
-        #             test,
-        #             body=[],
-        #             orelse=[
-        #                 Assign()
-        #         )
-        # )
-        # translate_to_python(node[1])
         root_if = ast.If(new_value_node(node[1][0][1]), process_body(node[1][0][2]), orelse=[])
         current_if = root_if # Attribute orelse must be setting if incomming elif's or an else 
         for if_tuple in node[1][1:]: # Iterate over elif's / else
