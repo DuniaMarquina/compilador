@@ -230,7 +230,7 @@ def p_empty(p): # Auxiliar producction to handle alone if declaration
 
 def p_if(p):
     """if : IF LPAREN condition RPAREN LCURLY_BRACE code RCURLY_BRACE
-          | IF LPAREN id empty RPAREN LCURLY_BRACE code RCURLY_BRACE"""
+          | IF LPAREN value RPAREN LCURLY_BRACE code RCURLY_BRACE"""
     if(len(p) == 8): #condition
         p[0] = ('if', p[3], p[6])
     else: #id empty
@@ -239,7 +239,7 @@ def p_if(p):
 def p_elif(p):
     """
     elif : ELIF LPAREN condition RPAREN LCURLY_BRACE code RCURLY_BRACE
-         | ELIF LPAREN id empty RPAREN LCURLY_BRACE code RCURLY_BRACE
+         | ELIF LPAREN value RPAREN LCURLY_BRACE code RCURLY_BRACE
          | elif elif
     """
     if len(p) == 8: #ELIF condition LCURLY_BRACE code RCURLY_BRACE
