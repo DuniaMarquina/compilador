@@ -485,7 +485,7 @@ def p_modification(p):
 
         sentence_type = get_type_of(p[3])
         if sentence_type != symbol_table[p[1][1]]['type']: # Right of '=' is not the expect type
-            print(f'Cannot assig {sentence_type} to id {p[1][1]} at •{p[1][1]} {p[2]} {sentence_type}•')
+            print(f'Cannot assigment {sentence_type} to id {p[1][1]} at •{p[1][1]} {p[2]} {sentence_type}•')
             exit()
     else:
         str_index = format_index(p[2])
@@ -652,6 +652,29 @@ def get_type_of(expr) -> Any:
         return int
     elif expr[0] == 'd_value':
         return dict
+    elif expr[0] == 'load_cplx':
+        root_dict = symbol_table.get(expr[1][1]).get('keys')
+        if root_dict:
+            for keys in expr[2]:
+                a = root_dict.get(keys[1])
+                if a:
+                    root_dict = a
+                else:
+                    return None
+            return root_dict
+        
+        vect = symbol_table.get(expr[1][1])
+        print("load_cplx",vect, expr)
+        if vect:
+            if len(expr[2]) > vect["dimensions"]:
+                return None
+             
+            for index in range(len(expr[2])):
+                if expr[2][index][1] > vect['size-dimensions'][index]:
+                    return None
+            return vect["type"]
+        else:
+            return None
     elif isinstance(expr,list):
         for d_value in expr:
             if get_type_of(d_value) == dict:
