@@ -1,6 +1,7 @@
 import ast, sys, logging
 import ply.yacc as yacc
 import ply.lex as lex
+from typing import Any
 
 """
     Config logger to yacc.yacc().parse
@@ -190,6 +191,67 @@ def p_suite_value(p):
     else:
         p[0] = p[1]
 
+def count_elements(level):
+    count = 0
+    type_elem = None
+    for item in level:
+        if isinstance(item, list):
+            c, t = count_elements(item)
+            count += c
+            if type_elem:
+                if type_elem == 'error_type':
+                    pass
+                elif type_elem != t:
+                    type_elem = 'error_type'
+            else:
+                type_elem = t
+        else:
+            count += 1
+            t = get_type_of(item)
+            if type_elem:
+                if type_elem == 'error_type':
+                    pass
+                elif type_elem != t:
+                    type_elem = 'error_type'
+            else:
+                type_elem = t
+    return count, type_elem
+        
+def gen_keys_dict(init_values) -> dict:
+    temp_dict = dict()
+    for dict_value in init_values:
+        if isinstance(dict_value[2], tuple):
+            temp_dict[dict_value[1][1]] = get_type_of(dict_value[2])
+        else:
+            temp_dict[dict_value[1][1]] = gen_keys_dict(dict_value[2])
+    return temp_dict
+
+def calc_attributes(type, init_values, index=None) -> dict:
+    attributes = dict()
+
+    attributes['type'] = type_to_python(type[1])
+    if index:
+        attributes['dimensions'] = len(index)
+        attributes['size-dimensions'] = []
+        for dim in index:
+            attributes['size-dimensions'].append(dim[1])
+        count, type_list = count_elements(init_values)
+        if type_list == 'error_type':
+            attributes['error'] = 'Incorrect init list, check that all elements are of the same type'
+            return attributes
+        elif type_list != attributes['type']:
+            attributes['error'] = f'List of elements {type_list} is not of the expected type {attributes["type"]}'
+            return attributes
+        size = 1
+        for i in attributes['size-dimensions']:
+            size *= i
+        if count != size:
+            attributes['error'] = 'Init list don\'t have the correct size'
+    elif isinstance(init_values, list):
+        attributes['keys'] = gen_keys_dict(init_values)
+    
+    return attributes
+
 def p_assig(p):
     """assig : type id LCURLY_BRACE condition RCURLY_BRACE
              | type id LCURLY_BRACE sentence RCURLY_BRACE
@@ -199,24 +261,45 @@ def p_assig(p):
              | type id LCURLY_BRACE comments init_list RCURLY_BRACE
              | type id index h_level"""
     if symbol_table.get(p[2][1]): # Variable redefinition
-        print(f'Redefinition of variable {p[2][1]}')
+        print(f'Redefinition of variable {p[2][1]} at • {p[1][1]} {p[2][1]}  •')
         exit()
-    else:
-        symbol_table[p[2][1]] = p[1][1] # Save id
 
+    LCURLY_BRACE = '{'
+    RCURLY_BRACE = '}'
     if len(p) == 5: #type id index h_level
+        symbol_table[p[2][1]] = calc_attributes(p[1],p[4],p[3]) # Save id and some stuff
+        if symbol_table[p[2][1]].get('error'):
+            print(f'{symbol_table[p[2][1]]["error"]} at •{p[1][1]} {p[2][1]} {format_index(p[3])} {LCURLY_BRACE} init list {RCURLY_BRACE}•')
+            exit()
         p[0] = (p[1][1].lower()+'_vector_asig', p[1], p[2], p[3], *p[4])
-    elif len(p) == 6: #type id LCURLY_BRACE condition|sentence|value RCURLY_BRACE
+    else: #type id LCURLY_BRACE condition|sentence|value RCURLY_BRACE
+        symbol_table[p[2][1]] = calc_attributes(p[1],p[4]) # Save id and some stuff
         if isinstance(p[4],lex.LexToken): # Error production
             print('No empty init values')
             exit()
-        p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[4])
-    elif len(p) == 7: #type id LCURLY_BRACE comments init_list RCURLY_BRACE
-        p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[5])
+
+        if p[len(p)-2][0] == 'invalid_id': # ERROR invalid id
+            print(f'Unkwon id \"{p[len(p)-2][1]}\" at •{p[1][1]} {p[2][1]} {LCURLY_BRACE} {p[len(p)-2][1]} {RCURLY_BRACE}•')
+            exit()
+
+        rigth_expr_type = get_type_of(p[len(p)-2])
+        id_type = type_to_python(p[1][1])
+        if  id_type != rigth_expr_type: # Type error
+            print(f'Invalid assigment type {rigth_expr_type} over varible of type {id_type} at •{p[1][1]} {p[2][1]} {LCURLY_BRACE} ... {RCURLY_BRACE}•')
+            exit()
+        p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[len(p)-2])
+
+def p_head_for(p):
+    """head_for : FOR id IN id"""
+    p[0] = (p[2], p[4])
+    if symbol_table[p[4][1]].get('dimensions'): # Iterate over vector
+        symbol_table[p[2][1]] = calc_attributes(('type', 'INT'),('r_value',1)) # Save id and some stuff
+    else: # Iterate over dict
+        symbol_table[p[2][1]] = calc_attributes(('type', 'STRING'),('r_value','2')) # Save id and some stuff
 
 def p_for(p):
-    """for  : FOR id IN id LCURLY_BRACE code RCURLY_BRACE"""
-    p[0] = ('for', p[2], p[4], p[6])
+    """for : head_for LCURLY_BRACE code RCURLY_BRACE"""
+    p[0] = ('for', *p[1], p[3])
 
 def p_des_block(p):
     """d_block : if elif else
@@ -239,21 +322,22 @@ def p_empty(p): # Auxiliar producction to handle alone if declaration
 def p_if(p):
     """if : IF LPAREN condition RPAREN LCURLY_BRACE code RCURLY_BRACE
           | IF LPAREN value RPAREN LCURLY_BRACE code RCURLY_BRACE"""
-    if(len(p) == 8): #condition
-        p[0] = ('if', p[3], p[6])
-    else: #id empty
-        p[0] = ('if', p[3], p[7])
-
+    if p[3][0] == 'invalid_id': # ERROR invalid id
+        print(f'Unkwon id \"{p[3][1]}\" at • IF ({p[3][1]})•')
+        exit()
+    p[0] = ('if', p[3], p[6])
+    
 def p_elif(p):
     """
     elif : ELIF LPAREN condition RPAREN LCURLY_BRACE code RCURLY_BRACE
          | ELIF LPAREN value RPAREN LCURLY_BRACE code RCURLY_BRACE
          | elif elif
     """
-    if len(p) == 8: #ELIF condition LCURLY_BRACE code RCURLY_BRACE
+    if len(p) == 8: #ELIF condition|value LCURLY_BRACE code RCURLY_BRACE
         p[0] = [('elif', p[3], p[6])]
-    elif len(p) == 9:
-        p[0] = [('elif', p[3], p[7])]
+        if p[3][0] == 'invalid_id': # ERROR invalid id
+            print(f'Unkwon id \"{p[3][1]}\" at • ELIF ({p[3][1]})•')
+            exit()
     else: #elif elif
         p[1].extend(p[2])
         p[0] = p[1]
@@ -268,10 +352,23 @@ def p_sentence(p):
                 | sentence MINUS term
                 | term"""
     if len(p) > 2:
-        if p[2] == '+':
-            p[0] = ('add', p[1], p[3])
-        else:
-            p[0] = ('substract', p[1], p[3])
+        if p[1][0] == 'invalid_id': # ERROR invalid id
+            print(f'Unkwon id \"{p[1][1]}\" at expresion •{p[1][1]} {p[2]} {p[3][1]}•')
+            exit()
+        elif p[3][0] == 'invalid_id': # ERROR invalid id
+            print(f'Unkwon id \"{p[3][1]}\" at expresion •{p[1][1]} {p[2]} {p[3][1]}•')
+            exit()
+        
+        left_op = get_type_of(p[1])
+        right_op = get_type_of(p[3])
+        if left_op == right_op: # Operands are same type
+            if p[2] == '+':
+                p[0] = ('add', p[1], p[3])
+            else:
+                p[0] = ('substract', p[1], p[3])
+        elif left_op != int or right_op != int: # ERROR
+            print(f'Invalid operands over {left_op} {p[2]} {right_op} at •{p[1][1]} {p[2]} {p[3][1]}•')
+            exit()
     else:
         p[0] = p[1]
 
@@ -280,16 +377,35 @@ def p_term_mult(p):
             | term DIVIDE value
             | value"""
     if len(p) > 2:
-        if p[2] == '*':
-            p[0] = ('multiply', p[1], p[3])
-        else:
-            p[0] = ('divide', p[1], p[3])
+        if p[1][0] == 'invalid_id': # ERROR invalid id
+            print(f'Unkwon id \"{p[1][1]}\" at expresion •{p[1][1]} {p[2]} {p[3][1]}•')
+            exit()
+        elif p[3][0] == 'invalid_id': # ERROR invalid id
+            print(f'Unkwon id \"{p[3][1]}\" at expresion •{p[1][1]} {p[2]} {p[3][1]}•')
+            exit()
+
+        left_op = get_type_of(p[1])
+        right_op = get_type_of(p[3])
+        if left_op == right_op: # Operands are same type
+            if p[2] == '*':
+                p[0] = ('multiply', p[1], p[3])
+            else:
+                p[0] = ('divide', p[1], p[3])
+        elif left_op != int or right_op != int: # ERROR
+            print(f'Invalid operands over {left_op} {p[2]} {right_op} at •{p[1][1]} {p[2]} {p[3][1]}•')
+            exit()
     else:
         p[0] = p[1]
-
+    
 def p_condition(p):
     """condition : sentence comp sentence"""
-    p[0] = ('condition', p[1], p[2], p[3])
+    left_op = get_type_of(p[1])
+    right_op = get_type_of(p[3])
+    if left_op == right_op: # Operands are same type
+        p[0] = ('condition', p[1], p[2], p[3])
+    elif left_op != int or right_op != int: # ERROR
+        print(f'Invalid operands over {left_op} {p[2][1]} {right_op} at •{p[1][1]} {p[2][1]} {p[3][1]}•')
+        exit()
 
 def p_comp(p):
     """comp : EQUAL
@@ -310,6 +426,11 @@ def p_comp(p):
     
 def p_print(p):
     """print : PRINT LPAREN init_list RPAREN"""
+    for arg in p[3]:
+        if arg[0] == 'invalid_id':
+            print(f'Unkwon id \"{arg[1]}\" at expresion •{p[1]} {p[2]}...{p[4]}•')
+            exit()
+
     p[0] = ('print', p[3])
 
 def p_high_level(p):
@@ -329,10 +450,15 @@ def p_lower_level(p):
     """l_level : sentence
                | condition
                | LCURLY_BRACE h_level RCURLY_BRACE
-               | LCURLY_BRACE comments h_level RCURLY_BRACE"""
+               | LCURLY_BRACE comments h_level RCURLY_BRACE
+               | LCURLY_BRACE error RCURLY_BRACE"""
+    
     if len(p) == 2:
         p[0] = p[1]
     elif len(p) == 4:
+        if isinstance(p[2],lex.LexToken): # Error production
+            print('No empty init values')
+            exit()
         p[0] = p[2]
     else:
         p[0] = p[3]
@@ -344,19 +470,67 @@ def p_value(p):
 
 def p_modification(p):
     """modification : id ASSINGMENT sentence
+                    | id ASSINGMENT condition
                     | id index ASSINGMENT sentence"""
     if len(p) == 4:
-        p[0] = ('modification', p[1], p[3])
+        if symbol_table.get(p[1][1]): # Check id was declared
+            p[0] = ('modification', p[1], p[3])
+        else: # id in p[1] is not declarated
+            print(f'Unkwon id \"{p[1][1]}\" at expresion •{p[1][1]} {p[2]} {p[3][1]}•')
+            exit()
+        
+        if p[3][0] == 'invalid_id': # id in p[3] is not declarated
+            print(f'Unkwon id \"{p[3][1]}\" at expresion •{p[1][1]} {p[2]} {p[3][1]}•')
+            exit()
+
+        sentence_type = get_type_of(p[3])
+        if sentence_type != symbol_table[p[1][1]]['type']: # Right of '=' is not the expect type
+            print(f'Cannot assig {sentence_type} to id {p[1][1]} at •{p[1][1]} {p[2]} {sentence_type}•')
+            exit()
     else:
-        p[0] = ('modification', p[1], p[2], p[4])
+        str_index = format_index(p[2])
+        # Check: id was declared
+        if symbol_table.get(p[1][1]):
+            p[0] = ('modification', p[1], p[2], p[4])
+        else: # id in p[1] is not declarated
+            print(f'Unkwon id \"{p[1][1]}\" in assigment •{p[1][1]}{str_index} {p[3]} ...•')
+            exit()
+        # Check: index
+        invalid_indexs = check_indexs(p[2])
+        if len(invalid_indexs) == 0: # All index OKEY
+            p[0] = ('modification', p[1], p[2], p[4])
+        else: # Index with problems
+            print(f'Unkwon id(s): {invalid_indexs} at index of assigment •{p[1][1]}{str_index} {p[3]} ...•')
+            exit()
+        if symbol_table[p[1][1]].get('dimensions'): # If has these attribute is a vector
+            # Check: If dimensions of index vector is equal to dimension of vector
+            if len(p[2]) != symbol_table[p[1][1]]['dimensions']:
+                print(f'Invalid dimensions, expected dimensions: {symbol_table[p[1][1]]["dimensions"]}, got {len(p[2])} in assigment •{p[1][1]}{str_index} {p[3]} ...•')
+                exit()
+            # Check: If indexs are of type INT
+            for index_tuple in p[2]:
+                tt = get_type_of(index_tuple)
+                if tt != int:
+                    print(f'Invalid index [{index_tuple[1]}], is type {tt}, expected {int} in assigment •{p[1][1]}{str_index} {p[3]} ...•')
+                    exit()
+        
+def check_indexs(index):
+    s = []
+    for i in index:
+        if i[0] == 'invalid_id':
+            s.append(i[1])
+    return s
 
 def p_load_cplx(p):
     """load_cplx : id empty
                  | id index"""
-    if isinstance(p[2], list): #Matrix or Dicctionary
-        p[0] = ('load_cplx', p[1], p[2])
-    else: # Simple variable
-        p[0] = p[1]
+    if symbol_table.get(p[1][1]): # Check id was declared
+        if isinstance(p[2], list): #Matrix or Dicctionary
+            p[0] = ('load_cplx', p[1], p[2])
+        else: # Simple variable
+            p[0] = p[1]
+    else: # ERROR 
+        p[0] = ('invalid_id', p[1][1])
 
 def p_index(p):
     """index : LBRACKET key RBRACKET
@@ -366,9 +540,22 @@ def p_index(p):
              | LBRACKET id RBRACKET
              | index LBRACKET id RBRACKET"""
     if len(p) == 4:
-        p[0] = [p[2]]
+        if p[2][0] == 'id':
+            if symbol_table.get(p[2][1]): # Check id was declared
+                p[0] = [p[2]]
+            else:
+                p[0] = [('invalid_id', p[2][1])]
+        else: # key | pos
+            p[0] = [p[2]]
     else:
-        p[1].append(p[3])
+        if p[3][0] == 'id':
+            if symbol_table.get(p[3][1]): # Check id was declared
+                p[1].append(p[3])
+            else:
+                p[1].append(('invalid_id', p[3][1]))
+                p[0] = p[1]
+        else: # Key | pos
+            p[1].append(p[3])
         p[0] = p[1]
 
 def p_key(p):
@@ -413,6 +600,63 @@ def p_commets(p):
 
 def p_error(p):
     print(f'Syntax error at {p.value!r} in line {p.lineno}, position {p.lexpos}, Message: ')
+
+def format_index(index):
+    s = ""
+    for i in index:
+        if i[0] == 'pos':
+            s += '[' + str(i[1]) + ']'
+        elif i[0] == 'key':
+            s += '["' + i[1] + '"]'
+        else:
+            s += '[' + i[1] + ']'
+    return s
+
+def type_to_python(type) -> Any:
+    if type == 'BOOL':
+        return bool
+    elif type == 'STRING':
+        return str
+    elif type == 'INT':
+        return int
+    elif type == 'DICTIONARY':
+        return dict
+
+def get_type_of(expr) -> Any:
+    if expr[0] == 'r_value':
+        if isinstance(expr[1], str):
+            if expr[1] == 'TRUE' or expr[1] == 'FALSE':
+                return bool
+            else:
+                return str
+        elif isinstance(expr[1], int):
+            return int
+    elif expr[0] == 'id':
+        return symbol_table[expr[1]]['type']
+    elif expr[0] == 'pos':
+        return int
+    elif expr[0] == 'add' or expr[0] == 'multiply' or expr[0] == 'divide' or expr[0] == 'substract':
+        left_op = get_type_of(expr[1])
+        right_op = get_type_of(expr[2])
+        if left_op == right_op:
+            return left_op
+    elif expr[0] == 'condition':
+        left_op = get_type_of(expr[1])
+        right_op = get_type_of(expr[3])
+        if left_op == right_op:
+            return bool
+    elif expr[0] == 'index':
+        for index in expr[1]:
+            if get_type_of(index) != int:
+                return index
+        return int
+    elif expr[0] == 'd_value':
+        return dict
+    elif isinstance(expr,list):
+        for d_value in expr:
+            if get_type_of(d_value) == dict:
+                return dict
+    return None
 
 """
     Zone of parsing 
