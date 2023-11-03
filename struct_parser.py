@@ -243,56 +243,8 @@ def validate_type(p):
                         print(f'TypeError in assignment of value in {p[1][1]}')
         else:
             print(f'Undefined variable')
-        
-def validate_conditions(p):
-    if p[0] == 'if':
-        condition = p[1]
-        code_block = p[2]
-
-        if condition[0] != 'condition':
-            print('Error: The if expression must be a valid condition')
-            return False  #indica que se encontro un error
-
-        #validar bloque if
-        if not validate_code_block(code_block):
-            return False  #indicar que se encontro un error en el bloque de codigo
-
-    elif p[0] == 'd_block':
-        if_statement = p[1][0]
-        elif_statements = p[1][1:-1] if len(p[1]) > 1 else []
-        else_statement = p[1][-1] if len(p[1]) > 1 else None
-
-        #validar if
-        if not validate_conditions(if_statement):
-            return False  #indicar que se encontro un error en la estructura
-
-        #validar elif
-        for elif_node in elif_statements:
-            if not validate_conditions(elif_node):
-                return False #indicar que se encontro un error en la estructura
-
-        #validar else
-        if else_statement is not None:
-            if not validate_conditions(else_statement):
-                return False #indicar que se encontro un error en la estructura
-    else:
-        print('Error: Invalid conditional structure')
-        return False  #indicar que se encontro un error en la estructura
-
-    return True  #no hay errores
-
-def validate_code_block(p):
-    if isinstance(p, list):
-        for statement in p:
-            if statement[0] == 'if':
-                # Bloque anidado
-                if not validate_conditions(statement):
-                    return False  #indicar que se encontro un error en la estructura
-            else:
-                print('Error: Incorrect condition declaration in block')
-                return False #indicar que se encontro un error en la estructura
-
-    return True  #no hay errores
+#verificar que que los operando sean del mismo tipo        
+# que si se asigna un boolen 
 
 def p_assig(p):
     """assig : type id LCURLY_BRACE condition RCURLY_BRACE
@@ -342,14 +294,25 @@ def p_empty(p): # Auxiliar producction to handle alone if declaration
     """empty :"""
     pass
 
+def check_if_elif_variable_types(condition, code):
+    if isinstance(condition, list) and len(condition) == 3 and isinstance(code, list):
+        condition_var = condition[1]
+        code_var = code[1]
+
+        if type(condition_var) != type(code_var):
+            print("TypeError: Mismatched variable types in condition")
+            exit()
+    print("si llega ")
+
 def p_if(p):
     """if : IF LPAREN condition RPAREN LCURLY_BRACE code RCURLY_BRACE
           | IF LPAREN value RPAREN LCURLY_BRACE code RCURLY_BRACE"""
     if(len(p) == 8): #condition
+        check_if_elif_variable_types(p[3], p[6])
         p[0] = ('if', p[3], p[6])
     else: #id empty
+        check_if_elif_variable_types(p[3], p[7])
         p[0] = ('if', p[3], p[7])
-    validate_conditions(p[0])
     
 
 def p_elif(p):
@@ -359,8 +322,10 @@ def p_elif(p):
          | elif elif
     """
     if len(p) == 8: #ELIF condition LCURLY_BRACE code RCURLY_BRACE
+        check_if_elif_variable_types(p[3], p[6])
         p[0] = [('elif', p[3], p[6])]
     elif len(p) == 9:
+        check_if_elif_variable_types(p[3], p[7])
         p[0] = [('elif', p[3], p[7])]
     else: #elif elif
         p[1].extend(p[2])
