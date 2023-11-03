@@ -214,10 +214,11 @@ def validate_type(p):
             elif p[0] == 'bool_vector_asig':
                 aux = bool
             else:
-                aux = str                
-            if type(p[4][0][1]) != type(p[4][1][1]) or type(p[4][0][1]) != type(p[4][2][1]) or type(p[4][0][1]) != aux:
-                print(f'TypeError in assignment of value in {p[2][1]}')
-                exit()
+                aux = str     
+            for i in p[4]:       
+                if aux != type(i[1]):
+                    print(f'TypeError in assignment of value in {p[2][1]}')
+                    exit()                    
         else:
             print(f'Error in vector size {p[2][1]}')
             
@@ -235,15 +236,24 @@ def validate_type(p):
             if len(p) == 3:
                 if type(p[2][1]) != aux:
                     print(f'TypeError in assignment of value in {p[1][1]}')
+                    exit()
             else:
                 if aux == 'DICTIONARY':
                     pass
                 else:
                     if type(p[3][1]) != aux:
                         print(f'TypeError in assignment of value in {p[1][1]}')
+                        exit()
         else:
             print(f'Undefined variable')
+            exit()
+            
+    elif p[0] == 'for':
+        if not symbol_table.get(p[2][1]):
+            print(f'Error in FOR: Undefined variable {p[2][1]}')
+            exit()
         
+ 
                    
 def p_assig(p):
     """assig : type id LCURLY_BRACE condition RCURLY_BRACE
@@ -274,6 +284,8 @@ def p_assig(p):
 def p_for(p):
     """for  : FOR id IN id LCURLY_BRACE code RCURLY_BRACE"""
     p[0] = ('for', p[2], p[4], p[6])
+    symbol_table[p[2][1]] = 'INT'
+    validate_type(p[0])
 
 def p_des_block(p):
     """d_block : if elif else
@@ -368,6 +380,7 @@ def p_comp(p):
 def p_print(p):
     """print : PRINT LPAREN init_list RPAREN"""
     p[0] = ('print', p[3])
+
 
 def p_high_level(p):
     """h_level : h_level COMMA comments l_level
