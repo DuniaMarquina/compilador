@@ -278,7 +278,7 @@ def validate_conditions(node):
 def validate_code_block(node):
     if isinstance(node, list):
         for statement in node:
-            if statement[0] == 'if':
+            if statement[0] == 'IF':
                 # Bloque anidado
                 validate_conditions(statement)
             else:
