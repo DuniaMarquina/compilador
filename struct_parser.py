@@ -244,46 +244,55 @@ def validate_type(p):
         else:
             print(f'Undefined variable')
         
-def validate_conditions(node):
-    
-    if node[0] == 'if':
-        condition = node[1]
-        code_block = node[2]
-        #validacion block_code -> (if)
+def validate_conditions(p):
+    if p[0] == 'if':
+        condition = p[1]
+        code_block = p[2]
+
         if condition[0] != 'condition':
             print('Error: The if expression must be a valid condition')
-            exit()
-        #validar el bloque de if
-        validate_code_block(code_block)
+            return False  #indica que se encontro un error
 
-    elif node[0] == 'd_block':
-        if_statement = node[1][0]
-        elif_statements = node[1][1:-1] if len(node[1]) > 1 else []
-        else_statement = node[1][-1] if len(node[1]) > 1 else None
+        #validar bloque if
+        if not validate_code_block(code_block):
+            return False  #indicar que se encontro un error en el bloque de codigo
 
-        #validar el if
-        validate_conditions(if_statement)
+    elif p[0] == 'd_block':
+        if_statement = p[1][0]
+        elif_statements = p[1][1:-1] if len(p[1]) > 1 else []
+        else_statement = p[1][-1] if len(p[1]) > 1 else None
 
-        #validar los elif
+        #validar if
+        if not validate_conditions(if_statement):
+            return False  #indicar que se encontro un error en la estructura
+
+        #validar elif
         for elif_node in elif_statements:
-            validate_conditions(elif_node)
+            if not validate_conditions(elif_node):
+                return False #indicar que se encontro un error en la estructura
 
-        #validar el else
+        #validar else
         if else_statement is not None:
-            validate_conditions(else_statement)
+            if not validate_conditions(else_statement):
+                return False #indicar que se encontro un error en la estructura
     else:
         print('Error: Invalid conditional structure')
-        exit()
+        return False  #indicar que se encontro un error en la estructura
 
-def validate_code_block(node):
-    if isinstance(node, list):
-        for statement in node:
-            if statement[0] == 'IF':
+    return True  #no hay errores
+
+def validate_code_block(p):
+    if isinstance(p, list):
+        for statement in p:
+            if statement[0] == 'if':
                 # Bloque anidado
-                validate_conditions(statement)
+                if not validate_conditions(statement):
+                    return False  #indicar que se encontro un error en la estructura
             else:
                 print('Error: Incorrect condition declaration in block')
-                exit()
+                return False #indicar que se encontro un error en la estructura
+
+    return True  #no hay errores
 
 def p_assig(p):
     """assig : type id LCURLY_BRACE condition RCURLY_BRACE
@@ -340,6 +349,8 @@ def p_if(p):
         p[0] = ('if', p[3], p[6])
     else: #id empty
         p[0] = ('if', p[3], p[7])
+    validate_conditions(p[0])
+    
 
 def p_elif(p):
     """
