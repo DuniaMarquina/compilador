@@ -124,6 +124,7 @@ t_ignore  = ' \t\n'
 def t_error(t):
     print(f"Error: Ilegal character '{t.value[0]}' at line {t.lineno}, position {t.lexpos}")
     t.lexer.skip(len(t.value))
+    exit()
 
 """
     Definition zone of Paser
@@ -159,11 +160,15 @@ def p_expr(p):
 
 def p_init_list(p):
     """init_list : init_list dict_value
-                 | init_list arg
+                 | init_list value
+                 | init_list sentence
+                 | init_list condition
                  | init_list COMMA comments
                  | init_list COMMA
                  | dict_value
-                 | arg"""
+                 | value
+                 | sentence
+                 | condition"""
     if len(p) == 2:
         p[0] = [p[1]]
     elif p[1] and isinstance(p[2],tuple):
@@ -174,10 +179,7 @@ def p_init_list(p):
 
 def p_dict_value(p):
     """dict_value : key COLON suite_value"""
-    if len(p) == 5:
-        p[0] = ('d_value', p[2], p[4])
-    else:
-        p[0] = ('d_value', p[1], p[3])
+    p[0] = ('d_value', p[1], p[3])
 
 def p_suite_value(p):
     """suite_value : condition
@@ -187,22 +189,127 @@ def p_suite_value(p):
         p[0] = p[2]
     else:
         p[0] = p[1]
+        
+        
+def validate_type(p):
+    if p[0] == 'int_asig':
+        if type(p[3][1]) != int:
+            print(f'TypeError in assignment of {p[2][1]}')
+            exit()        
+    elif p[0] == 'bool_asig':
+        if p[3][1]== 'TRUE' or p[3][1] == 'FALSE':
+            pass
+        else:
+            print(f'TypeError in assignment of {p[2][1]}')
+            exit()
+    elif p[0] == 'string_asig':
+        if type(p[3][1]) != str:
+            print(f'TypeError in assignment of {p[2][1]}')
+            exit()
+             
+    elif p[0] == 'int_vector_asig' or p[0] == 'bool_vector_asig' or p[0] == 'string_vector_asig':
+        if len(p[4]) == p[3][0][1]:
+            if p[0] == 'int_vector_asig':
+                aux = int
+            elif p[0] == 'bool_vector_asig':
+                aux = bool
+            else:
+                aux = str                
+            if type(p[4][0][1]) != type(p[4][1][1]) or type(p[4][0][1]) != type(p[4][2][1]) or type(p[4][0][1]) != aux:
+                print(f'TypeError in assignment of value in {p[2][1]}')
+                exit()
+        else:
+            print(f'Error in vector size {p[2][1]}')
+            
+    elif p[0] == 'modification':
+        if symbol_table.get(p[1][1]): 
+            if symbol_table.get(p[1][1]) == 'INT':
+                aux = int
+            elif symbol_table.get(p[1][1]) == 'STRING':
+                aux = str
+            elif symbol_table.get(p[1][1]) == 'BOOL':
+                aux = bool
+            else:
+                aux = 'DICTIONARY'
+                
+            if len(p) == 3:
+                if type(p[2][1]) != aux:
+                    print(f'TypeError in assignment of value in {p[1][1]}')
+            else:
+                if aux == 'DICTIONARY':
+                    pass
+                else:
+                    if type(p[3][1]) != aux:
+                        print(f'TypeError in assignment of value in {p[1][1]}')
+        else:
+            print(f'Undefined variable')
+        
+def validate_conditions(node):
+    
+    if node[0] == 'if':
+        condition = node[1]
+        code_block = node[2]
+        #validacion block_code -> (if)
+        if condition[0] != 'condition':
+            print('Error: The if expression must be a valid condition')
+            exit()
+        #validar el bloque de if
+        validate_code_block(code_block)
+
+    elif node[0] == 'd_block':
+        if_statement = node[1][0]
+        elif_statements = node[1][1:-1] if len(node[1]) > 1 else []
+        else_statement = node[1][-1] if len(node[1]) > 1 else None
+
+        #validar el if
+        validate_conditions(if_statement)
+
+        #validar los elif
+        for elif_node in elif_statements:
+            validate_conditions(elif_node)
+
+        #validar el else
+        if else_statement is not None:
+            validate_conditions(else_statement)
+    else:
+        print('Error: Invalid conditional structure')
+        exit()
+
+def validate_code_block(node):
+    if isinstance(node, list):
+        for statement in node:
+            if statement[0] == 'if':
+                # Bloque anidado
+                validate_conditions(statement)
+            else:
+                print('Error: Incorrect condition declaration in block')
+                exit()
 
 def p_assig(p):
     """assig : type id LCURLY_BRACE condition RCURLY_BRACE
              | type id LCURLY_BRACE sentence RCURLY_BRACE
+             | type id LCURLY_BRACE value RCURLY_BRACE
+             | type id LCURLY_BRACE error RCURLY_BRACE
              | type id LCURLY_BRACE init_list RCURLY_BRACE
              | type id LCURLY_BRACE comments init_list RCURLY_BRACE
              | type id index h_level"""
+    if symbol_table.get(p[2][1]): # Variable redefinition
+        print(f'Redefinition of variable {p[2][1]}')
+        exit()
+    else:
+        symbol_table[p[2][1]] = p[1][1] # Save id
+
     if len(p) == 5: #type id index h_level
         p[0] = (p[1][1].lower()+'_vector_asig', p[1], p[2], p[3], *p[4])
-    elif len(p) == 6:
-        if isinstance(p[4], tuple): #type id LCURLY_BRACE condition|sentence RCURLY_BRACE
-            p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[4])
-        elif isinstance(p[4],list): #type id LCURLY_BRACE init_list RCURLY_BRACE
-            p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[4])
+    elif len(p) == 6: #type id LCURLY_BRACE condition|sentence|value RCURLY_BRACE
+        if isinstance(p[4],lex.LexToken): # Error production
+            print('No empty init values')
+            exit()
+        p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[4])
     elif len(p) == 7: #type id LCURLY_BRACE comments init_list RCURLY_BRACE
         p[0] = (p[1][1].lower()+'_asig', p[1], p[2], p[5])
+
+    validate_type(p[0])
 
 def p_for(p):
     """for  : FOR id IN id LCURLY_BRACE code RCURLY_BRACE"""
@@ -227,16 +334,23 @@ def p_empty(p): # Auxiliar producction to handle alone if declaration
     pass
 
 def p_if(p):
-    """if : IF LPAREN condition RPAREN LCURLY_BRACE code RCURLY_BRACE"""
-    p[0] = ('if', p[3], p[6])
+    """if : IF LPAREN condition RPAREN LCURLY_BRACE code RCURLY_BRACE
+          | IF LPAREN value RPAREN LCURLY_BRACE code RCURLY_BRACE"""
+    if(len(p) == 8): #condition
+        p[0] = ('if', p[3], p[6])
+    else: #id empty
+        p[0] = ('if', p[3], p[7])
 
 def p_elif(p):
     """
     elif : ELIF LPAREN condition RPAREN LCURLY_BRACE code RCURLY_BRACE
+         | ELIF LPAREN value RPAREN LCURLY_BRACE code RCURLY_BRACE
          | elif elif
     """
     if len(p) == 8: #ELIF condition LCURLY_BRACE code RCURLY_BRACE
         p[0] = [('elif', p[3], p[6])]
+    elif len(p) == 9:
+        p[0] = [('elif', p[3], p[7])]
     else: #elif elif
         p[1].extend(p[2])
         p[0] = p[1]
@@ -271,10 +385,7 @@ def p_term_mult(p):
         p[0] = p[1]
 
 def p_condition(p):
-    """condition : sentence comp sentence 
-                 | value comp sentence
-                 | sentence comp value
-                 | value comp value"""
+    """condition : sentence comp sentence"""
     p[0] = ('condition', p[1], p[2], p[3])
 
 def p_comp(p):
@@ -294,8 +405,6 @@ def p_comp(p):
     elif p[1] == '>=':
         p[0] = ('greather_equal', p[1])
     
-        
-
 def p_print(p):
     """print : PRINT LPAREN init_list RPAREN"""
     p[0] = ('print', p[3])
@@ -327,7 +436,7 @@ def p_lower_level(p):
 
 def p_value(p):
     """value : r_value
-             | id"""
+             | load_cplx"""
     p[0] = p[1]
 
 def p_modification(p):
@@ -337,6 +446,8 @@ def p_modification(p):
         p[0] = ('modification', p[1], p[3])
     else:
         p[0] = ('modification', p[1], p[2], p[4])
+        
+    validate_type(p[0])
 
 def p_load_cplx(p):
     """load_cplx : id empty
@@ -366,11 +477,6 @@ def p_key(p):
 def p_pos(p):
     """ pos : NUMBER"""
     p[0] = ('pos', p[1])
-
-def p_arg(p):
-    """arg : r_value
-           | load_cplx"""
-    p[0] = ('f_arg', p[1])
 
 def p_id(p):
     """id : ID"""
@@ -405,8 +511,7 @@ def p_commets(p):
                 | COMMENT"""
 
 def p_error(p):
-    SyntaxError(p)
-
+    print(f'Syntax error at {p.value!r} in line {p.lineno}, position {p.lexpos}, Message: ')
 
 """
     Zone of parsing 
@@ -426,15 +531,6 @@ with open(source_file, 'r') as source_file:
 source_file.close()
 
 tree = parser.parse(source_code, lexer=lexer, debug=logging.getLogger())
-
-# Generate a reference python AST to compare with us AST
-source_code = '' 
-with open('examples/python-example.py', 'r') as source_file:
-    for line in source_file.readlines():
-        source_code += line
-source_file.close()
-
-p_tree = ast.parse(source_code, mode='exec')
 
 """
     Zone to define translation an ast to another format
@@ -465,7 +561,6 @@ def translate_to_python(node):
         elif n[0] == 'id':
             a_n = ast.Name(n[1], ast.Load())
         elif n[0] == 'condition':
-            #('condition', ('r_value', 8), ('comp', '<'), ('r_value', 1))
             left_node = new_value_node(n[1])
             right_node = new_value_node(n[3])
             if n[2][0] == 'equal':
@@ -478,7 +573,7 @@ def translate_to_python(node):
                 op_node = ast.Gt()
             elif n[2][0] == 'greather_equal':
                 op_node = ast.GtE()
-            a_n = ast.Compare(ast.Constant(5), [op_node], [ast.Constant(3)]) 
+            a_n = ast.Compare(left_node, [op_node], [right_node]) 
         elif n[0] == 'load_cplx':
             a_n = iterative_subs(n[1],n[2])
         else: # add, substract, multiply, divide
@@ -495,14 +590,21 @@ def translate_to_python(node):
             a_n = ast.BinOp(left_node, op_node, right_node)
         return a_n
 
-    #Helper function to load matrix or dictionary values
+    # Helper function to load matrix or dictionary values
     # Need variable name and a list of keys/index
     def iterative_subs(id, list_keys):
         subs = ast.Subscript(new_value_node(id), new_value_node(list_keys[0]), ast.Load())
         for key in list_keys[1:]:
             subs = ast.Subscript(subs, new_value_node(key), ast.Load())
         return subs
-
+    
+    # Helper function to create nodes given a list of nodes
+    def process_body(list_expr):
+        expr_body = [] # Variable to store all sentence in the body expression
+        for expr in list_expr: # Iterate over setences inside of for body 
+            expr_body.append(translate_to_python(expr))
+        return  expr_body
+    
     ast_node = None # Node to generate
     if node[0] == 'string_asig' or node[0] == 'int_asig' or node[0] == 'bool_asig': # Case: Incomming node is type asig
         ast_node = ast.Assign([ast.Name(node[2][1],ast.Store())], new_value_node(node[3]))
@@ -543,17 +645,25 @@ def translate_to_python(node):
     elif node[0] == 'print': # Case: Incomming node is type print
         l_ast_args = [] #List of args for ast.Call
         for arg in node[1]: # List f_args of print node
-            l_ast_args.append(new_value_node(arg[1]))
+            l_ast_args.append(new_value_node(arg))
         ast_node = ast.Expr(ast.Call(ast.Name('print', ast.Load()), l_ast_args, []))
     elif node[0] == 'for': # Case: Incomming node is a for
-        expr_body = [] # Variable to store all expressions in the body of for loop
-        for expr in node[3]: # Iterate over expressions inside of for body 
-            expr_body.append(translate_to_python(expr))
-
         target = new_value_node(node[1])
         target.ctx = ast.Store()
-        ast_node = ast.For(target,new_value_node(node[2]),expr_body,[])
+        ast_node = ast.For(target,new_value_node(node[2]), process_body(node[3]),[])
         
+    elif node[0] == 'd_block':
+        root_if = ast.If(new_value_node(node[1][0][1]), process_body(node[1][0][2]), orelse=[])
+        current_if = root_if # Attribute orelse must be setting if incomming elif's or an else 
+        for if_tuple in node[1][1:]: # Iterate over elif's / else
+            current_if.orelse = translate_to_python(if_tuple) # Setting orelse attribute of previos if/elif
+            current_if = current_if.orelse[0] # Update pointer to new orelse attribute
+        ast_node = root_if
+    elif node[0] == 'elif':
+        ast_node = [ast.If(new_value_node(node[1]), process_body(node[2]), [])]
+    elif node[0] == 'else':
+        ast_node = process_body(node[1])
+
     return ast_node
 
 """
@@ -586,9 +696,4 @@ dump_file.close()
 # Save translation dump to a file
 with open('dumps/dump_translation.txt','w') as dump_file:
     dump_file.write(ast.dump(ast_root, include_attributes=True, indent=4))   
-dump_file.close()
-
-# Save parsing dump to a file
-with open('dumps/dump_example_python.txt', 'w') as dump_file:
-    dump_file.write(ast.dump(p_tree, include_attributes=True, indent=4))
 dump_file.close()
