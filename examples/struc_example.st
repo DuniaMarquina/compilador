@@ -62,3 +62,21 @@ INT array[3] {1,2,3}
 PRINT(array)
 
 array[2] = 4
+
+FOR i IN array {
+    PRINT(i)
+}
+
+INT puesto{3}
+INT car{0}
+
+IF (puesto == 1) {
+    car = 1
+}
+ELIF (puesto > 2) {
+    car = 2
+}
+ELSE{
+    car = 0
+}
+
