@@ -192,6 +192,7 @@ def p_suite_value(p):
         
         
 def validate_type(p):
+    #validation of assignment types
     if p[0] == 'int_asig':
         if type(p[3][1]) != int:
             print(f'TypeError in assignment of {p[2][1]}')
@@ -221,7 +222,7 @@ def validate_type(p):
                     exit()                    
         else:
             print(f'Error in vector size {p[2][1]}')
-            
+    #validation of modification types
     elif p[0] == 'modification':
         if symbol_table.get(p[1][1]): 
             if symbol_table.get(p[1][1]) == 'INT':
@@ -244,16 +245,24 @@ def validate_type(p):
                     if type(p[3][1]) != aux:
                         print(f'TypeError in assignment of value in {p[1][1]}')
                         exit()
+                    if p[2][0][1] >= size_vector[p[1][1]]:
+                        print(f'Error: Invalid position in assignment in {p[1][1]}')
+                        exit()
         else:
             print(f'Undefined variable')
             exit()
-            
+    #validation of variable to iterate in for  
     elif p[0] == 'for':
         if not symbol_table.get(p[2][1]):
             print(f'Error in FOR: Undefined variable {p[2][1]}')
             exit()
-        
- 
+        else:
+            if symbol_table.get(p[2][1]) != 'DICTIONARY':
+                if size_vector.get(p[2][1]) == None:
+                    print(f'Error: non-iterable variable {p[2][1]}')
+                    exit()
+
+size_vector = dict()
                    
 def p_assig(p):
     """assig : type id LCURLY_BRACE condition RCURLY_BRACE
@@ -270,6 +279,7 @@ def p_assig(p):
         symbol_table[p[2][1]] = p[1][1] # Save id
 
     if len(p) == 5: #type id index h_level
+        size_vector[p[2][1]] = p[3][0][1]
         p[0] = (p[1][1].lower()+'_vector_asig', p[1], p[2], p[3], *p[4])
     elif len(p) == 6: #type id LCURLY_BRACE condition|sentence|value RCURLY_BRACE
         if isinstance(p[4],lex.LexToken): # Error production
@@ -356,9 +366,26 @@ def p_term_mult(p):
     else:
         p[0] = p[1]
 
+def value_ifelif(p):
+    if type(p[3][1]) == str:      
+        if p[3][1] == 'TRUE' or p[3][1] == 'FALSE':
+            if symbol_table.get(p[1][1]) != 'BOOL': 
+                print(f'TypeError in conditional ') 
+                exit()
+        else:
+            if symbol_table.get(p[1][1]) != symbol_table.get(p[3][1]): 
+                print(f'TypeError in conditional') 
+                exit()
+    elif type(p[3][1]) == int:
+        if symbol_table.get(p[1][1]) != 'INT':
+            print(f'TypeError in conditional') 
+            exit()
+        
+
 def p_condition(p):
     """condition : sentence comp sentence"""
     p[0] = ('condition', p[1], p[2], p[3])
+    value_ifelif(p[0])
 
 def p_comp(p):
     """comp : EQUAL
