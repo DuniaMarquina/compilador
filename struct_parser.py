@@ -132,6 +132,8 @@ def t_error(t):
 
 symbol_table = dict()
 
+
+
 def p_code(p):
     """code : code expr
             | expr """
@@ -242,9 +244,7 @@ def validate_type(p):
                     if type(p[3][1]) != aux:
                         print(f'TypeError in assignment of value in {p[1][1]}')
         else:
-            print(f'Undefined variable')
-#verificar que que los operando sean del mismo tipo        
-# que si se asigna un boolen 
+            print(f'Undefined variable')        
 
 def p_assig(p):
     """assig : type id LCURLY_BRACE condition RCURLY_BRACE
@@ -293,25 +293,13 @@ def p_des_block(p):
 def p_empty(p): # Auxiliar producction to handle alone if declaration
     """empty :"""
     pass
-
-def check_if_elif_variable_types(condition, code):
-    if isinstance(condition, list) and len(condition) == 3 and isinstance(code, list):
-        condition_var = condition[1]
-        code_var = code[1]
-
-        if type(condition_var) != type(code_var):
-            print("TypeError: Mismatched variable types in condition")
-            exit()
-    print("si llega ")
-
+# IF (X < Y ){   abc   }
 def p_if(p):
     """if : IF LPAREN condition RPAREN LCURLY_BRACE code RCURLY_BRACE
           | IF LPAREN value RPAREN LCURLY_BRACE code RCURLY_BRACE"""
     if(len(p) == 8): #condition
-        check_if_elif_variable_types(p[3], p[6])
         p[0] = ('if', p[3], p[6])
     else: #id empty
-        check_if_elif_variable_types(p[3], p[7])
         p[0] = ('if', p[3], p[7])
     
 
@@ -322,10 +310,8 @@ def p_elif(p):
          | elif elif
     """
     if len(p) == 8: #ELIF condition LCURLY_BRACE code RCURLY_BRACE
-        check_if_elif_variable_types(p[3], p[6])
         p[0] = [('elif', p[3], p[6])]
     elif len(p) == 9:
-        check_if_elif_variable_types(p[3], p[7])
         p[0] = [('elif', p[3], p[7])]
     else: #elif elif
         p[1].extend(p[2])
@@ -360,9 +346,16 @@ def p_term_mult(p):
     else:
         p[0] = p[1]
 
+def value_ifelif(p):
+    if symbol_table.get(p[1][1]) != symbol_table.get(p[3][1]): 
+        print(f'TypeError in conditional') 
+        exit()
+
+
 def p_condition(p):
     """condition : sentence comp sentence"""
     p[0] = ('condition', p[1], p[2], p[3])
+    value_ifelif(p[0])
 
 def p_comp(p):
     """comp : EQUAL
