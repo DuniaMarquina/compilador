@@ -233,11 +233,16 @@ def validate_type(p):
                 aux = bool
             else:
                 aux = 'DICTIONARY'
-                
+           # validar las operaciones algebraicas     
             if len(p) == 3:
-                if type(p[2][1]) != aux:
-                    print(f'TypeError in assignment of value in {p[1][1]}')
-                    exit()
+                if len(p[2]) == 1:
+                    if type(p[2][1]) != aux:
+                        print(f'TypeError in assignment of value in {p[1][1]}')
+                        #exit()
+                else:
+                    if symbol_table.get(p[2][1][1]) != symbol_table.get(p[2][2][1]): 
+                        print(f'TypeError in assignment of value in {p[1][1]}') 
+                        exit()
             else:
                 if aux == 'DICTIONARY':
                     pass
