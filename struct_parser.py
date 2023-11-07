@@ -226,7 +226,7 @@ def gen_keys_dict(init_values) -> dict:
             temp_dict[dict_value[1][1]] = gen_keys_dict(dict_value[2])
     return temp_dict
 
-def calc_attributes(type, init_values, index=None) -> dict:
+def set_attributes(type, init_values, index=None) -> dict:
     attributes = dict()
 
     attributes['type'] = type_to_python(type[1])
@@ -267,13 +267,13 @@ def p_assig(p):
     LCURLY_BRACE = '{'
     RCURLY_BRACE = '}'
     if len(p) == 5: #type id index h_level
-        symbol_table[p[2][1]] = calc_attributes(p[1],p[4],p[3]) # Save id and some stuff
+        symbol_table[p[2][1]] = set_attributes(p[1],p[4],p[3]) # Save id and some stuff
         if symbol_table[p[2][1]].get('error'):
             print(f'{symbol_table[p[2][1]]["error"]} at •{p[1][1]} {p[2][1]} {format_index(p[3])} {LCURLY_BRACE} init list {RCURLY_BRACE}•')
             exit()
         p[0] = (p[1][1].lower()+'_vector_asig', p[1], p[2], p[3], *p[4])
     else: #type id LCURLY_BRACE condition|sentence|value RCURLY_BRACE
-        symbol_table[p[2][1]] = calc_attributes(p[1],p[4]) # Save id and some stuff
+        symbol_table[p[2][1]] = set_attributes(p[1],p[4]) # Save id and some stuff
         if isinstance(p[4],lex.LexToken): # Error production
             print('No empty init values')
             exit()
@@ -293,9 +293,9 @@ def p_head_for(p):
     """head_for : FOR id IN id"""
     p[0] = (p[2], p[4])
     if symbol_table[p[4][1]].get('dimensions'): # Iterate over vector
-        symbol_table[p[2][1]] = calc_attributes(('type', 'INT'),('r_value',1)) # Save id and some stuff
+        symbol_table[p[2][1]] = set_attributes(('type', 'INT'),('r_value',1)) # Save id and some stuff
     else: # Iterate over dict
-        symbol_table[p[2][1]] = calc_attributes(('type', 'STRING'),('r_value','2')) # Save id and some stuff
+        symbol_table[p[2][1]] = set_attributes(('type', 'STRING'),('r_value','2')) # Save id and some stuff
 
 def p_for(p):
     """for : head_for LCURLY_BRACE code RCURLY_BRACE"""
@@ -361,7 +361,7 @@ def p_sentence(p):
         
         left_op = get_type_of(p[1])
         right_op = get_type_of(p[3])
-        if left_op == right_op: # Operands are same type
+        if left_op == right_op or left_op == 'Any' or right_op == 'Any': # Operands are same type
             if p[2] == '+':
                 p[0] = ('add', p[1], p[3])
             else:
@@ -386,7 +386,7 @@ def p_term_mult(p):
 
         left_op = get_type_of(p[1])
         right_op = get_type_of(p[3])
-        if left_op == right_op: # Operands are same type
+        if left_op == right_op or left_op == 'Any' or right_op == 'Any': # Operands are same type
             if p[2] == '*':
                 p[0] = ('multiply', p[1], p[3])
             else:
@@ -401,10 +401,10 @@ def p_condition(p):
     """condition : sentence comp sentence"""
     left_op = get_type_of(p[1])
     right_op = get_type_of(p[3])
-    if left_op == right_op: # Operands are same type
+    if left_op == right_op or left_op == 'Any' or right_op == 'Any': # Operands are same type
         p[0] = ('condition', p[1], p[2], p[3])
-    elif left_op != int or right_op != int: # ERROR
-        print(f'Invalid operands over {left_op} {p[2][1]} {right_op} at •{p[1][1]} {p[2][1]} {p[3][1]}•')
+    else: # ERROR
+        print(f'Invalid operands over {left_op} {p[2][1]} {right_op} at •{p[1][1][1]}{format_index(p[1][2])} {p[2][1]} {p[3][1]}•')
         exit()
 
 def p_comp(p):
@@ -606,7 +606,7 @@ def format_index(index):
     for i in index:
         if i[0] == 'pos':
             s += '[' + str(i[1]) + ']'
-        elif i[0] == 'key':
+        elif i[0] == 'key' or i[0] == 'id':
             s += '["' + i[1] + '"]'
         else:
             s += '[' + i[1] + ']'
@@ -622,7 +622,9 @@ def type_to_python(type) -> Any:
     elif type == 'DICTIONARY':
         return dict
 
-def get_type_of(expr) -> Any:
+def get_type_of(expr, debug = False) -> Any:
+    if debug:
+        print(expr)
     if expr[0] == 'r_value':
         if isinstance(expr[1], str):
             if expr[1] == 'TRUE' or expr[1] == 'FALSE':
@@ -656,6 +658,8 @@ def get_type_of(expr) -> Any:
         root_dict = symbol_table.get(expr[1][1]).get('keys')
         if root_dict:
             for keys in expr[2]:
+                if keys[0] == 'id':
+                    return 'Any'
                 a = root_dict.get(keys[1])
                 if a:
                     root_dict = a
@@ -664,7 +668,6 @@ def get_type_of(expr) -> Any:
             return root_dict
         
         vect = symbol_table.get(expr[1][1])
-        print("load_cplx",vect, expr)
         if vect:
             if len(expr[2]) > vect["dimensions"]:
                 return None

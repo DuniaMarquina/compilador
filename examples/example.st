@@ -21,7 +21,6 @@ FOR i IN inventory
    {
       PRINT("Producto abundante:", i)
    }
-
 }
 
 //Nuevas entradas
