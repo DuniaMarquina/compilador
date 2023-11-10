@@ -45,7 +45,6 @@ simple_tokens = [
    'GREATER_EQUAL',
    'COMMA',
    'COLON',
-   #'QUOTE',
     'COMMENT',
     'ID',
     'R_STRING'
@@ -89,13 +88,6 @@ t_GREATER = r'>'
 t_GREATER_EQUAL = r'>='
 t_COMMA = r','
 t_COLON = r':'
-#t_QUOTE = r'"'
-
-# A regular expression rule for floats
-"""def t_FLOAT(t):
-    r'\d*\.\d+|\d+\.\d*'
-    t.value = float(t.value)    
-    return t"""
 
 # A regular expression rule for ints
 def t_NUMBER(t):
@@ -191,67 +183,6 @@ def p_suite_value(p):
     else:
         p[0] = p[1]
 
-def count_elements(level):
-    count = 0
-    type_elem = None
-    for item in level:
-        if isinstance(item, list):
-            c, t = count_elements(item)
-            count += c
-            if type_elem:
-                if type_elem == 'error_type':
-                    pass
-                elif type_elem != t:
-                    type_elem = 'error_type'
-            else:
-                type_elem = t
-        else:
-            count += 1
-            t = get_type_of(item)
-            if type_elem:
-                if type_elem == 'error_type':
-                    pass
-                elif type_elem != t:
-                    type_elem = 'error_type'
-            else:
-                type_elem = t
-    return count, type_elem
-        
-def gen_keys_dict(init_values) -> dict:
-    temp_dict = dict()
-    for dict_value in init_values:
-        if isinstance(dict_value[2], tuple):
-            temp_dict[dict_value[1][1]] = get_type_of(dict_value[2])
-        else:
-            temp_dict[dict_value[1][1]] = gen_keys_dict(dict_value[2])
-    return temp_dict
-
-def set_attributes(type, init_values, index=None) -> dict:
-    attributes = dict()
-
-    attributes['type'] = type_to_python(type[1])
-    if index:
-        attributes['dimensions'] = len(index)
-        attributes['size-dimensions'] = []
-        for dim in index:
-            attributes['size-dimensions'].append(dim[1])
-        count, type_list = count_elements(init_values)
-        if type_list == 'error_type':
-            attributes['error'] = 'Incorrect init list, check that all elements are of the same type'
-            return attributes
-        elif type_list != attributes['type']:
-            attributes['error'] = f'List of elements {type_list} is not of the expected type {attributes["type"]}'
-            return attributes
-        size = 1
-        for i in attributes['size-dimensions']:
-            size *= i
-        if count != size:
-            attributes['error'] = 'Init list don\'t have the correct size'
-    elif isinstance(init_values, list):
-        attributes['keys'] = gen_keys_dict(init_values)
-    
-    return attributes
-
 def p_assig(p):
     """assig : type id LCURLY_BRACE condition RCURLY_BRACE
              | type id LCURLY_BRACE sentence RCURLY_BRACE
@@ -346,7 +277,6 @@ def p_else(p):
     """ else : ELSE LCURLY_BRACE code RCURLY_BRACE """
     p[0] = ('else', p[3])
 
-#Operaciones numéricas (revisar)
 def p_sentence(p):
     """sentence : sentence PLUS term
                 | sentence MINUS term
@@ -513,13 +443,6 @@ def p_modification(p):
                 if tt != int:
                     print(f'Invalid index [{index_tuple[1]}], is type {tt}, expected {int} in assigment •{p[1][1]}{str_index} {p[3]} ...•')
                     exit()
-        
-def check_indexs(index):
-    s = []
-    for i in index:
-        if i[0] == 'invalid_id':
-            s.append(i[1])
-    return s
 
 def p_load_cplx(p):
     """load_cplx : id empty
@@ -600,6 +523,74 @@ def p_commets(p):
 
 def p_error(p):
     print(f'Syntax error at {p.value!r} in line {p.lineno}, position {p.lexpos}, Message: ')
+
+def count_elements(level):
+    count = 0
+    type_elem = None
+    for item in level:
+        if isinstance(item, list):
+            c, t = count_elements(item)
+            count += c
+            if type_elem:
+                if type_elem == 'error_type':
+                    pass
+                elif type_elem != t:
+                    type_elem = 'error_type'
+            else:
+                type_elem = t
+        else:
+            count += 1
+            t = get_type_of(item)
+            if type_elem:
+                if type_elem == 'error_type':
+                    pass
+                elif type_elem != t:
+                    type_elem = 'error_type'
+            else:
+                type_elem = t
+    return count, type_elem
+        
+def gen_keys_dict(init_values) -> dict:
+    temp_dict = dict()
+    for dict_value in init_values:
+        if isinstance(dict_value[2], tuple):
+            temp_dict[dict_value[1][1]] = get_type_of(dict_value[2])
+        else:
+            temp_dict[dict_value[1][1]] = gen_keys_dict(dict_value[2])
+    return temp_dict
+
+def set_attributes(type, init_values, index=None) -> dict:
+    attributes = dict()
+
+    attributes['type'] = type_to_python(type[1])
+    if index:
+        attributes['dimensions'] = len(index)
+        attributes['size-dimensions'] = []
+        for dim in index:
+            attributes['size-dimensions'].append(dim[1])
+        count, type_list = count_elements(init_values)
+        if type_list == 'error_type':
+            attributes['error'] = 'Incorrect init list, check that all elements are of the same type'
+            return attributes
+        elif type_list != attributes['type']:
+            attributes['error'] = f'List of elements {type_list} is not of the expected type {attributes["type"]}'
+            return attributes
+        size = 1
+        for i in attributes['size-dimensions']:
+            size *= i
+        if count != size:
+            attributes['error'] = 'Init list don\'t have the correct size'
+    elif isinstance(init_values, list):
+        attributes['keys'] = gen_keys_dict(init_values)
+    
+    return attributes
+        
+def check_indexs(index):
+    s = []
+    for i in index:
+        if i[0] == 'invalid_id':
+            s.append(i[1])
+    return s
 
 def format_index(index):
     s = ""
@@ -862,9 +853,7 @@ def dump_to_file(node, dump_file):
 with open('dumps/dump_example_struct.txt', 'w') as dump_file:
     for node in tree:
         dump_to_file(node, dump_file)
-dump_file.close()
 
 # Save translation dump to a file
 with open('dumps/dump_translation.txt','w') as dump_file:
-    dump_file.write(ast.dump(ast_root, include_attributes=True, indent=4))   
-dump_file.close()
+    dump_file.write(ast.dump(ast_root, include_attributes=True, indent=4))
