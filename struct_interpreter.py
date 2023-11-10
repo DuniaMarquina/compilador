@@ -686,6 +686,19 @@ parser = yacc.yacc()
 # Reading source code
 source_file = entry_args[1] if len(entry_args) > 1 else 'examples/struc_example.st' 
 source_code = '' # string to store all source file
+
+parts_string = source_file.split('.')
+
+if len(parts_string) == 1:
+    print(f'Missing extension (.st) in source file: {source_file}')
+    exit()
+    
+extension = parts_string[len(parts_string) - 1]
+
+if extension != 'st':
+    print(f'Cannot read file of type {extension}')
+    exit()
+
 with open(source_file, 'r') as source_file:
     for line in source_file.readlines(): # Reading all source file
         source_code += line
