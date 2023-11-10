@@ -1,7 +1,7 @@
 // Basic types
 STRING a {"Hola mundo!"}
 
-// Data colections
+// Data collections
 DICTIONARY inventory {"apple": 5, "banana": 3, "orange": 2}
 PRINT(inventory)
 DICTIONARY complex_dict { // Nested DICTIONARY
