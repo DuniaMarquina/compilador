@@ -1,7 +1,7 @@
 STRING nombre_cliente {"Juan Perez"}
 INT edad_cliente {50}
 
-//INT miembro_programa {1}  // 1 si pertenece 0 no pertenece (falla de condicional con bool)
+// TRUE si pertenece FAIL no pertenece
 BOOL miembro_programa {TRUE}
 
 INT porcentaje {100}
@@ -28,3 +28,4 @@ PRINT("Bienvenido: , ", nombre_cliente)
 PRINT("Costo de la comida: ", costo_comida, " $")
 PRINT("Descuento: ", DES, " $")
 PRINT("TOTAL A PAGAR: ", costo_final, " $")
+

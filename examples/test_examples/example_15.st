@@ -7,3 +7,4 @@ FOR i IN array {
     sum = sum + PR
 }
 PRINT("suma: ", sum)
+

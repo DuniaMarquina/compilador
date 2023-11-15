@@ -6,3 +6,5 @@ FOR i IN array {
     sum = sum + i
 }
 PRINT("suma: ", sum)
+
+
